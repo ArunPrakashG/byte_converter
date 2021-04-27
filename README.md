@@ -1,6 +1,7 @@
 # ByteConverter
 
 Provides a simple interface for conversion of Digital values such as Bytes, KiloBytes etc.
+This library is a based on ByteSize library available on C# dotnet platforms which i am a huge fan off.
 
 Created from templates made available by Stagehand under a BSD-style
 [license](https://github.com/dart-lang/stagehand/blob/master/LICENSE).
