@@ -34,10 +34,11 @@ main() {
 
 ## License
 
-
+This project is licensed under MIT License. Read about it here: [MIT License](license)
 
 ## Features and bugs
 
 Please file feature requests and bugs here [issue tracker][tracker].
 
 [tracker]: https://github.com/ArunPrakashG/byte_converter/issues
+[license]: https://github.com/ArunPrakashG/byte_converter/blob/553e21c54c5625e18cbf49c3338b884892e728c1/LICENSE
