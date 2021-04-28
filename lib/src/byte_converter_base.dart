@@ -1,6 +1,6 @@
 import 'byte_enums.dart';
 
-class ByteConverter {
+class ByteConverter {  
   double _bytes;
   int _bits;
 
@@ -105,10 +105,7 @@ class ByteConverter {
 
   bool isEqualTo(ByteConverter instance) => _bits == instance._bits;
 
-  //@override
-  //String toString() => toHumanReadableString(SizeUnit.GB);
-
-  String toHumanReadableString(SizeUnit unit, {int precision = 2}) {
+  String toHumanReadable(SizeUnit unit, {int precision = 2}) {
     switch (unit) {
       case SizeUnit.TB:
         return '${_withPrecision(teraBytes, precision: precision)} TB';
