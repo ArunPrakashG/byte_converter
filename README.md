@@ -1,5 +1,7 @@
 # ByteConverter
 
+available on [Pub](https://pub.dev/packages/byte_converter)
+
 Provides a simple interface for conversion of Digital values such as Bytes, KiloBytes etc.
 This library is a based on ByteSize library available on C# dotnet platforms which i am a huge fan off.
 
