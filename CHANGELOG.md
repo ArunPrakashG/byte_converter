@@ -8,3 +8,7 @@
 
 - Implemented various static methods for conversion to and from digital values.
 - Implemented properties to make it easier to get different types of digital values for the value which is used to instantiate the ByteConvert instance.
+
+## 1.2.0
+
+- Renamed toHumanReadableString(...) to toHumanReadable(...) to simplify the api.

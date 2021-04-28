@@ -10,7 +10,7 @@ void main() {
     });
 
     test('First Test', () {
-      print(converter.toHumanReadableString(SizeUnit.TB));
+      print(converter.toHumanReadable(SizeUnit.TB));
       expect(converter.gigaBytes, 125.0);
     });
   });
@@ -23,7 +23,7 @@ void main() {
     });
 
     test('First Test', () {
-      print(converter.toHumanReadableString(SizeUnit.TB, precision: 15));
+      print(converter.toHumanReadable(SizeUnit.TB, precision: 15));
       expect(converter.gigaBytes, 0.0015688);
     });
   });
