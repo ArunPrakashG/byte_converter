@@ -1,8 +1,8 @@
 import 'byte_enums.dart';
 
-class ByteConverter {  
-  double _bytes;
-  int _bits;
+class ByteConverter {
+  double _bytes = 0.0;
+  int _bits = 0;
 
   ByteConverter(this._bytes) {
     _bits = (_bytes * 8.0).ceil();
@@ -13,7 +13,7 @@ class ByteConverter {
   }
 
   double _withPrecision(double value, {int precision = 2}) {
-    var valString = '$value' ?? '0.0';
+    var valString = '$value';
     var endingIndex = valString.indexOf('.') + (precision++);
 
     if (valString.length < endingIndex) {
@@ -118,7 +118,5 @@ class ByteConverter {
       case SizeUnit.B:
         return '${asBytes(precision: precision)} B';
     }
-
-    return '0.0 B';
   }
 }

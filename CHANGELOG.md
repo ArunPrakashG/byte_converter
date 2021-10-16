@@ -12,3 +12,7 @@
 ## 1.2.0
 
 - Renamed toHumanReadableString(...) to toHumanReadable(...) to simplify the api.
+
+## 1.3.0
+
+- Upgrade to null safety.
