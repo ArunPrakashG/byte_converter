@@ -114,7 +114,7 @@ class ByteConverter {
       case SizeUnit.MB:
         return '${_withPrecision(megaBytes, precision: precision)} MB';
       case SizeUnit.KB:
-        return '${_withPrecision(kiloBytes, precision: precision)} MB';
+        return '${_withPrecision(kiloBytes, precision: precision)} KB';
       case SizeUnit.B:
         return '${asBytes(precision: precision)} B';
     }
