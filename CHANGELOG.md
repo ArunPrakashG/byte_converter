@@ -16,3 +16,37 @@
 ## 1.3.0
 
 - Upgrade to null safety.
+
+## 2.0.0
+
+### Breaking Changes
+
+- Made ByteConverter class immutable
+- Changed static factory methods to named constructors
+- Removed deprecated methods
+- Updated precision handling for integer values
+
+### Added
+
+- Binary unit support (KiB, MiB, GiB, TiB, PiB)
+- Extension methods for fluent API
+- JSON serialization support
+- Math operations (+, -, \*, /)
+- Comparison operators
+- Cached calculations for better performance
+- `Comparable` interface implementation
+
+### Optimized
+
+- String formatting and caching
+- Unit conversion calculations
+- Memory usage with lazy initialization
+- Binary search for best unit selection
+- Precision handling for whole numbers
+
+### Fixed
+
+- Incorrect KB unit display in string output
+- Precision handling for integer values
+- Memory leaks from repeated calculations
+- Unit conversion accuracy

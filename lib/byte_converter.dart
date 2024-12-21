@@ -3,3 +3,4 @@ library byte_converter;
 
 export 'src/byte_converter_base.dart';
 export 'src/byte_enums.dart';
+export 'src/extensions.dart';

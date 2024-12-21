@@ -1,39 +1,76 @@
 # ByteConverter
 
-available on [Pub](https://pub.dev/packages/byte_converter)
+[![Pub Version](https://img.shields.io/pub/v/byte_converter)](https://pub.dev/packages/byte_converter)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-Provides a simple interface for conversion of Digital values such as Bytes, KiloBytes etc.
-This library is a based on ByteSize library available on C# dotnet platforms which i am a huge fan off.
+High-performance byte unit converter for Dart with automatic caching and fluent API inspired by ByteSize library from C#.
 
-Created from templates made available by Stagehand under a BSD-style
-[license](https://github.com/dart-lang/stagehand/blob/master/LICENSE).
+## Features
 
-## Usage
+- 🚀 High-performance with cached calculations
+- 📦 Decimal (KB, MB, GB, TB, PB) and Binary (KiB, MiB, GiB, TiB, PiB) units
+- 🔢 Math operations (`+`, `-`, `*`, `/`)
+- 🔄 JSON serialization
+- 💫 Fluent API with extensions
+- 📐 Precise number formatting
+- 🧮 Storage units (sectors, blocks, pages)
+- 📈 Network transfer rates
+- ⏱️ Time-based calculations
 
-A simple usage example:
+## Installation
+
+```yaml
+dependencies:
+  byte_converter: ^2.0.0
+```
+
+## Quick Start
 
 ```dart
-import 'package:byte_converter/byte_converter.dart';
+// Basic Usage
+final size = 1.5.gigaBytes;
+print(size); // 1.5 GB
 
-main() {
-  double bytes = 100000;
+// Math Operations
+final total = 1.5.gigaBytes + 500.megaBytes;
+print(total); // 2 GB
 
-  ByteConverter converter = ByteConverter(bytes);
-  print('$bytes bytes is ${converter.kiloBytes} Kb');
-  print('$bytes bytes is ${converter.megaBytes} Mb');
-  print('$bytes bytes is ${converter.gigaBytes} Gb');
-  print('$bytes bytes is ${converter.teraBytes} Tb');
+// Binary Units
+final ram = 16.gibiBytes;
+print(ram.toHumanReadable(SizeUnit.GB)); // 17.18 GB
 
-  // or
+// Network Rates
+final speed = 100.megaBytes;
+print(speed.megaBitsPerSecond); // 800 Mbps
 
-  double gigaByte = 70.5;
-  converter = ByteConverter.fromGigaBytes(gigaByte);
-  print('$bytes bytes is ${converter.kiloBytes} Kb');
-  print('$bytes bytes is ${converter.megaBytes} Mb');
-  print('$bytes bytes is ${converter.gigaBytes} Gb');
-  print('$bytes bytes is ${converter.teraBytes} Tb');
-}
+// Storage Units
+final disk = 4.kibiBytes;
+print(disk.sectors); // 8 sectors
 ```
+
+## Advanced Usage
+
+```dart
+final data = ByteConverter.fromGigaBytes(1.5);
+
+// Precision Control
+print(data.toHumanReadable(SizeUnit.MB, precision: 3)); // 1536.000 MB
+
+// Transfer Time
+final downloadTime = data.downloadTimeAt(10.megaBitsPerSecond);
+print(downloadTime); // Duration
+
+// Storage Alignment
+final aligned = data.roundToBlock();
+print(aligned.isWholeBlock); // true
+```
+
+## Performance
+
+- 🚀 Cached calculations for frequent operations
+- 🧠 Lazy initialization for better memory usage
+- 🔒 Immutable design for thread safety
+- ⚡ Optimized string formatting
 
 ## License
 
@@ -44,4 +81,3 @@ This project is licensed under MIT License. Read about it here: [MIT License](li
 Please file feature requests and bugs here [issue tracker][tracker].
 
 [tracker]: https://github.com/ArunPrakashG/byte_converter/issues
-[license]: https://github.com/ArunPrakashG/byte_converter/blob/553e21c54c5625e18cbf49c3338b884892e728c1/LICENSE

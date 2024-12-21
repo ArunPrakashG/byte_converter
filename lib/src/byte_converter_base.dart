@@ -1,122 +1,201 @@
+import 'dart:math' as math;
+
 import 'byte_enums.dart';
 
-class ByteConverter {
-  double _bytes = 0.0;
-  int _bits = 0;
+/// High-performance byte unit converter with caching
+class ByteConverter implements Comparable<ByteConverter> {
+  ByteConverter(double bytes) : this._(bytes, (bytes * 8.0).ceil());
 
-  ByteConverter(this._bytes) {
-    _bits = (_bytes * 8.0).ceil();
+  // Constructors
+  ByteConverter._(this._bytes, this._bits) {
+    if (_bytes < 0) throw ArgumentError('Bytes cannot be negative');
   }
 
-  ByteConverter.withBits(this._bits) {
-    _bytes = _bits / 8;
+  factory ByteConverter.withBits(int bits) {
+    if (bits < 0) throw ArgumentError('Bits cannot be negative');
+    return ByteConverter._(bits / 8.0, bits);
   }
 
-  double _withPrecision(double value, {int precision = 2}) {
-    var valString = '$value';
-    var endingIndex = valString.indexOf('.') + (precision++);
+  // Named constructors for decimal units
+  ByteConverter.fromKiloBytes(double value) : this(value * _KB);
+  ByteConverter.fromMegaBytes(double value) : this(value * _MB);
+  ByteConverter.fromGigaBytes(double value) : this(value * _GB);
+  ByteConverter.fromTeraBytes(double value) : this(value * _TB);
+  ByteConverter.fromPetaBytes(double value) : this(value * _PB);
 
-    if (valString.length < endingIndex) {
-      return value;
-    }
+  // Named constructors for binary units
+  ByteConverter.fromKibiBytes(double value) : this(value * _KIB);
+  ByteConverter.fromMebiBytes(double value) : this(value * _MIB);
+  ByteConverter.fromGibiBytes(double value) : this(value * _GIB);
+  ByteConverter.fromTebiBytes(double value) : this(value * _TIB);
+  ByteConverter.fromPebiBytes(double value) : this(value * _PIB);
 
-    return double.tryParse(valString.substring(0, endingIndex)) ?? value;
+  factory ByteConverter.fromJson(Map<String, dynamic> json) {
+    return ByteConverter(json['bytes'] as double);
   }
 
-  double get kiloBytes => _bytes / 1000;
+  // Unit conversion constants
+  static const _KB = 1000.0;
+  static const _MB = _KB * 1000;
+  static const _GB = _MB * 1000;
+  static const _TB = _GB * 1000;
+  static const _PB = _TB * 1000;
 
-  double get megaBytes => _bytes / 1000000;
+  static const _KIB = 1024.0;
+  static const _MIB = _KIB * 1024;
+  static const _GIB = _MIB * 1024;
+  static const _TIB = _GIB * 1024;
+  static const _PIB = _TIB * 1024;
 
-  double get gigaBytes => _bytes / 1000000000;
+  // Storage constants
+  static const _SECTOR_SIZE = 512.0; // Traditional sector size
+  static const _BLOCK_SIZE = 4096.0; // Common filesystem block
+  static const _PAGE_SIZE = 4096.0; // Memory page size
+  static const _WORD_SIZE = 8.0; // 64-bit word
 
-  double get teraBytes => _bytes / 1000000000000;
+  // Storage units
+  int get sectors => (_bytes / _SECTOR_SIZE).ceil();
+  int get blocks => (_bytes / _BLOCK_SIZE).ceil();
+  int get pages => (_bytes / _PAGE_SIZE).ceil();
+  int get words => (_bytes / _WORD_SIZE).ceil();
 
-  double get petaBytes => _bytes / 1E+15;
+  // Network rates
+  int get bitsPerSecond => _bits;
+  double get kiloBitsPerSecond => bitsPerSecond / 1000;
+  double get megaBitsPerSecond => kiloBitsPerSecond / 1000;
+  double get gigaBitsPerSecond => megaBitsPerSecond / 1000;
 
-  double asBytes({int precision = 2}) => _withPrecision(_bytes, precision: precision);
+  // Time-based methods
+  Duration transferTimeAt(double bitsPerSecond) =>
+      Duration(microseconds: (_bits / bitsPerSecond * 1000000).ceil());
 
-  static ByteConverter fromBytes(double value) => ByteConverter(value);
+  Duration downloadTimeAt(double bytesPerSecond) =>
+      Duration(microseconds: (_bytes / bytesPerSecond * 1000000).ceil());
 
-  static ByteConverter fromBits(int value) => ByteConverter.withBits(value);
+  // Convenience getters
+  bool get isWholeSector => _bytes % _SECTOR_SIZE == 0;
+  bool get isWholeBlock => _bytes % _BLOCK_SIZE == 0;
+  bool get isWholePage => _bytes % _PAGE_SIZE == 0;
+  bool get isWholeWord => _bytes % _WORD_SIZE == 0;
 
-  static ByteConverter fromKibiBytes(double value) => ByteConverter(value * 1024.0);
+  // Cached unit strings
+  static const _units = {
+    SizeUnit.B: ' B',
+    SizeUnit.KB: ' KB',
+    SizeUnit.MB: ' MB',
+    SizeUnit.GB: ' GB',
+    SizeUnit.TB: ' TB',
+  };
 
-  static ByteConverter fromMebiBytes(double value) => ByteConverter(value * 1048576.0);
+  // Core data
+  final double _bytes;
+  final int _bits;
 
-  static ByteConverter fromGibiBytes(double value) => ByteConverter(value * 1073741824.0);
+  // Cached conversions
+  late final double _kiloBytes = _bytes / _KB;
+  late final double _megaBytes = _bytes / _MB;
+  late final double _gigaBytes = _bytes / _GB;
+  late final String _cachedString = _calculateString();
 
-  static ByteConverter fromTebiBytes(double value) => ByteConverter(value * 1099511627776.0);
+  // Optimized getters
+  double get kiloBytes => _kiloBytes;
+  double get megaBytes => _megaBytes;
+  double get gigaBytes => _gigaBytes;
+  double get teraBytes => _bytes / _TB;
+  double get petaBytes => _bytes / _PB;
 
-  static ByteConverter fromPebiBytes(double value) => ByteConverter(value * 1125899906842624.0);
+  double get kibiBytes => _bytes / _KIB;
+  double get mebiBytes => _bytes / _MIB;
+  double get gibiBytes => _bytes / _GIB;
+  double get tebiBytes => _bytes / _TIB;
+  double get pebiBytes => _bytes / _PIB;
 
-  static ByteConverter fromKiloBytes(double value) => ByteConverter(value * 1000.0);
+  num asBytes({int precision = 2}) => _withPrecision(_bytes, precision);
+  int get bits => _bits;
 
-  static ByteConverter fromMegaBytes(double value) => ByteConverter(value * 1000000.0);
+  // Math operations
+  ByteConverter operator +(ByteConverter other) {
+    return ByteConverter._(
+      _bytes + other._bytes,
+      _bits + other._bits,
+    );
+  }
 
-  static ByteConverter fromGigaBytes(double value) => ByteConverter(value * 1000000000.0);
+  ByteConverter operator -(ByteConverter other) {
+    return ByteConverter._(
+      _bytes - other._bytes,
+      _bits - other._bits,
+    );
+  }
 
-  static ByteConverter fromTeraBytes(double value) => ByteConverter(value * 1000000000000.0);
+  ByteConverter operator *(num factor) => ByteConverter(_bytes * factor);
 
-  static ByteConverter fromPetaBytes(double value) => ByteConverter(value * 1E+15);
+  ByteConverter operator /(num divisor) => ByteConverter(_bytes / divisor);
 
-  ByteConverter add(ByteConverter value) => this + value;
+  // Comparison operators
+  bool operator >(ByteConverter other) => _bits > other._bits;
+  bool operator <(ByteConverter other) => _bits < other._bits;
+  bool operator <=(ByteConverter other) => _bits <= other._bits;
+  bool operator >=(ByteConverter other) => _bits >= other._bits;
 
-  ByteConverter subtract(ByteConverter value) => this - value;
+  // Rounding methods
+  ByteConverter roundToSector() => ByteConverter(sectors * _SECTOR_SIZE);
+  ByteConverter roundToBlock() => ByteConverter(blocks * _BLOCK_SIZE);
+  ByteConverter roundToPage() => ByteConverter(pages * _PAGE_SIZE);
+  ByteConverter roundToWord() => ByteConverter(words * _WORD_SIZE);
 
-  ByteConverter addBytes(double value) => this + fromBytes(value);
+  @override
+  int compareTo(ByteConverter other) => _bits.compareTo(other._bits);
 
-  ByteConverter addKiloBytes(double value) => this + fromKiloBytes(value);
+  // Optimized string handling
+  String _calculateString() {
+    final unit = _selectBestUnit();
+    final value = _convertToUnit(unit);
+    return '${_withPrecision(value, 2)}${_units[unit]}';
+  }
 
-  ByteConverter addMegaBytes(double value) => this + fromMegaBytes(value);
+  SizeUnit _selectBestUnit() {
+    if (_bytes >= _TB) return SizeUnit.TB;
+    if (_bytes >= _GB) return SizeUnit.GB;
+    if (_bytes >= _MB) return SizeUnit.MB;
+    if (_bytes >= _KB) return SizeUnit.KB;
+    return SizeUnit.B;
+  }
 
-  ByteConverter addGigaBytes(double value) => this + fromGigaBytes(value);
+  double _convertToUnit(SizeUnit unit) => switch (unit) {
+        SizeUnit.TB => teraBytes,
+        SizeUnit.GB => gigaBytes,
+        SizeUnit.MB => megaBytes,
+        SizeUnit.KB => kiloBytes,
+        SizeUnit.B => _bytes,
+      };
 
-  ByteConverter addTeraBytes(double value) => this + fromTeraBytes(value);
-
-  ByteConverter addPetaBytes(double value) => this + fromPetaBytes(value);
-
-  ByteConverter addKibiBytes(double value) => this + fromKibiBytes(value);
-
-  ByteConverter addMebiBytes(double value) => this + fromMebiBytes(value);
-
-  ByteConverter addGibiBytes(double value) => this + fromGibiBytes(value);
-
-  ByteConverter addTebiBytes(double value) => this + fromTebiBytes(value);
-
-  ByteConverter addPebiBytes(double value) => this + fromPebiBytes(value);
-
-  ByteConverter operator +(ByteConverter instance) => ByteConverter(instance._bytes + _bytes);
-
-  ByteConverter operator -(ByteConverter instance) => ByteConverter(_bytes - instance._bytes);
-
-  bool operator >(ByteConverter instance) => _bits > instance._bits;
-
-  bool operator <(ByteConverter instance) => _bits < instance._bits;
-
-  bool operator <=(ByteConverter instance) => _bits <= instance._bits;
-
-  bool operator >=(ByteConverter instance) => _bits >= instance._bits;
-
-  static int compare(ByteConverter a, ByteConverter b) => a._bits.compareTo(b._bits);
-
-  static bool isEqual(ByteConverter a, ByteConverter b) => a.isEqualTo(b);
-
-  int compareTo(ByteConverter instance) => compare(this, instance);
-
-  bool isEqualTo(ByteConverter instance) => _bits == instance._bits;
+  num _withPrecision(double value, int precision) {
+    if (precision < 0) return value;
+    // Handle whole numbers without decimal places
+    if (value % 1 == 0) return value.toInt();
+    final factor = math.pow(10, precision);
+    return (value * factor).round() / factor;
+  }
 
   String toHumanReadable(SizeUnit unit, {int precision = 2}) {
-    switch (unit) {
-      case SizeUnit.TB:
-        return '${_withPrecision(teraBytes, precision: precision)} TB';
-      case SizeUnit.GB:
-        return '${_withPrecision(gigaBytes, precision: precision)} GB';
-      case SizeUnit.MB:
-        return '${_withPrecision(megaBytes, precision: precision)} MB';
-      case SizeUnit.KB:
-        return '${_withPrecision(kiloBytes, precision: precision)} MB';
-      case SizeUnit.B:
-        return '${asBytes(precision: precision)} B';
-    }
+    final value = _convertToUnit(unit);
+    return '${_withPrecision(value, precision)}${_units[unit]}';
   }
+
+  // Override Object methods
+  @override
+  String toString() => _cachedString;
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) =>
+      identical(this, other) || other is ByteConverter && _bits == other._bits;
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => _bits.hashCode;
+
+  // JSON serialization
+  Map<String, dynamic> toJson() => {'bytes': _bytes};
 }
