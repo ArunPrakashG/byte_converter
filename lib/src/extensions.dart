@@ -1,3 +1,4 @@
+import 'big_byte_converter.dart';
 import 'byte_converter_base.dart';
 
 /// Extensions for int to create ByteConverter instances
@@ -40,4 +41,31 @@ extension DoubleByteConverterExtension on double {
   ByteConverter get gibiBytes => ByteConverter.fromGibiBytes(this);
   ByteConverter get tebiBytes => ByteConverter.fromTebiBytes(this);
   ByteConverter get pebiBytes => ByteConverter.fromPebiBytes(this);
+}
+
+/// Extensions for BigInt to create BigByteConverter instances
+extension BigIntByteConverterExtension on BigInt {
+  // Basic units
+  BigByteConverter get bytes => BigByteConverter(this);
+  BigByteConverter get bits => BigByteConverter.withBits(this);
+
+  // Decimal units
+  BigByteConverter get kiloBytes => BigByteConverter.fromKiloBytes(this);
+  BigByteConverter get megaBytes => BigByteConverter.fromMegaBytes(this);
+  BigByteConverter get gigaBytes => BigByteConverter.fromGigaBytes(this);
+  BigByteConverter get teraBytes => BigByteConverter.fromTeraBytes(this);
+  BigByteConverter get petaBytes => BigByteConverter.fromPetaBytes(this);
+  BigByteConverter get exaBytes => BigByteConverter.fromExaBytes(this);
+  BigByteConverter get zettaBytes => BigByteConverter.fromZettaBytes(this);
+  BigByteConverter get yottaBytes => BigByteConverter.fromYottaBytes(this);
+
+  // Binary units
+  BigByteConverter get kibiBytes => BigByteConverter.fromKibiBytes(this);
+  BigByteConverter get mebiBytes => BigByteConverter.fromMebiBytes(this);
+  BigByteConverter get gibiBytes => BigByteConverter.fromGibiBytes(this);
+  BigByteConverter get tebiBytes => BigByteConverter.fromTebiBytes(this);
+  BigByteConverter get pebiBytes => BigByteConverter.fromPebiBytes(this);
+  BigByteConverter get exbiBytes => BigByteConverter.fromExbiBytes(this);
+  BigByteConverter get zebiBytes => BigByteConverter.fromZebiBytes(this);
+  BigByteConverter get yobiBytes => BigByteConverter.fromYobiBytes(this);
 }

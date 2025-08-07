@@ -41,4 +41,50 @@ void main() {
   final mixed = ByteConverter(1024 * 1024); // 1 MiB
   print('As MB: ${mixed.megaBytes} MB');
   print('As MiB: ${mixed.mebiBytes} MiB');
+
+  print('\n--- BigInt Examples for Very Large Data ---');
+
+  // BigInt usage for very large numbers
+  final dataCenter = BigByteConverter.fromExaBytes(BigInt.from(5));
+  print('Data center storage: $dataCenter');
+
+  // Precise calculations with BigInt
+  final preciseCalculation =
+      BigInt.parse('123456789012345678901234567890').bytes;
+  print('Ultra-precise value: ${preciseCalculation.asBytes} bytes');
+
+  // Large unit support (exabytes, zettabytes, yottabytes)
+  final cosmicData = BigByteConverter.fromYottaBytes(BigInt.from(1));
+  print('Cosmic scale data: $cosmicData');
+
+  // BigInt math operations
+  final bigFile1 = BigByteConverter.fromTeraBytes(BigInt.from(500));
+  final bigFile2 = BigByteConverter.fromTeraBytes(BigInt.from(300));
+  final bigTotal = bigFile1 + bigFile2;
+  print('Large files total: $bigTotal');
+
+  // Conversion between BigInt and regular converters
+  final normalConverter = ByteConverter(1048576); // 1 MB
+  final bigConverter = BigByteConverter.fromByteConverter(normalConverter);
+  print('Converted to BigInt: ${bigConverter.asBytes} bytes');
+
+  // Convert back (may lose precision for very large numbers)
+  final backToNormal = bigConverter.toByteConverter();
+  print('Converted back: ${backToNormal.asBytes()} bytes');
+
+  // Exact arithmetic with BigInt
+  final exactGB = BigInt.from(1000000000).bytes; // Exactly 1 GB
+  print('Exact GB: ${exactGB.gigaBytesExact} GB (exact)');
+  print('Approx GB: ${exactGB.gigaBytes} GB (double precision)');
+
+  // BigInt extensions
+  final fromExtension = BigInt.from(1024).kibiBytes;
+  print('From BigInt extension: $fromExtension');
+
+  // Very large number serialization
+  final hugeNumber =
+      BigByteConverter(BigInt.parse('999999999999999999999999999'));
+  final hugeJson = hugeNumber.toJson();
+  final restoredHuge = BigByteConverter.fromJson(hugeJson);
+  print('Huge number preserved: ${restoredHuge.asBytes}');
 }
