@@ -16,6 +16,8 @@ High-performance byte unit converter for Dart with automatic caching and fluent 
 - 🧮 Storage units (sectors, blocks, pages)
 - 📈 Network transfer rates
 - ⏱️ Time-based calculations
+- ✨ **NEW**: BigInt support for arbitrary precision calculations
+- 🌌 **NEW**: Large units (EB, ZB, YB) for massive data handling
 
 ## Installation
 
@@ -48,6 +50,38 @@ final disk = 4.kibiBytes;
 print(disk.sectors); // 8 sectors
 ```
 
+## BigInt Support for Large Data
+
+For scenarios requiring arbitrary precision or handling extremely large values:
+
+```dart
+// BigInt Constructor
+final dataCenter = BigByteConverter.fromExaBytes(BigInt.from(5));
+print(dataCenter); // 5 EB
+
+// Ultra-precise calculations
+final precise = BigInt.parse('123456789012345678901234567890').bytes;
+print(precise.asBytes); // Exact value preserved
+
+// Large units support
+final cosmic = BigByteConverter.fromYottaBytes(BigInt.one);
+print(cosmic); // 1 YB
+
+// BigInt Extensions
+final huge = BigInt.from(1024).exaBytes;
+print(huge.exaBytesExact); // Exact BigInt result
+
+// Conversion between types
+final normal = ByteConverter(1048576);
+final big = BigByteConverter.fromByteConverter(normal);
+final backToNormal = big.toByteConverter();
+```
+
+### When to Use BigInt vs Regular Converter
+
+- **ByteConverter**: General use cases, good performance, handles up to ~15 digits precision
+- **BigByteConverter**: Exact calculations, data center scales, scientific computing, crypto applications
+
 ## Advanced Usage
 
 ```dart
@@ -63,7 +97,24 @@ print(downloadTime); // Duration
 // Storage Alignment
 final aligned = data.roundToBlock();
 print(aligned.isWholeBlock); // true
+
+// BigInt exact arithmetic
+final bigData = BigByteConverter.fromGigaBytes(BigInt.from(1000));
+print(bigData.gigaBytesExact); // BigInt.from(1000) - no precision loss
+print(bigData.gigaBytes); // 1000.0 - converted to double
 ```
+
+## Unit Support
+
+### Regular Units (ByteConverter)
+
+- Decimal: B, KB, MB, GB, TB, PB
+- Binary: B, KiB, MiB, GiB, TiB, PiB
+
+### Extended Units (BigByteConverter)
+
+- Decimal: B, KB, MB, GB, TB, PB, EB, ZB, YB
+- Binary: B, KiB, MiB, GiB, TiB, PiB, EiB, ZiB, YiB
 
 ## Performance
 

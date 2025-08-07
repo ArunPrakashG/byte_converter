@@ -1,21 +1,39 @@
 # Changelog
 
-## 1.0.0
+## 2.1.0
 
-- Initial version, with base methods.
+### Added - BigInt Support
 
-## 1.1.0
+- **BigByteConverter**: New class for arbitrary precision byte calculations using BigInt
+- **Extended unit support**: Added Exabytes (EB), Zettabytes (ZB), and Yottabytes (YB) for both decimal and binary units
+- **BigInt extensions**: Extensions for BigInt type to create BigByteConverter instances
+- **Exact arithmetic methods**: `*Exact` getters that return BigInt values without precision loss
+- **Cross-type conversion**: Convert between ByteConverter and BigByteConverter
+- **Large-scale JSON serialization**: Support for serializing/deserializing extremely large numbers
 
-- Implemented various static methods for conversion to and from digital values.
-- Implemented properties to make it easier to get different types of digital values for the value which is used to instantiate the ByteConvert instance.
+### Use Cases for BigInt Support
 
-## 1.2.0
+- Data center storage calculations requiring exact precision
+- Scientific computing with massive datasets
+- Cryptographic applications where precision is critical
+- Blockchain and distributed systems with large data requirements
+- Future-proofing for exascale computing scenarios
 
-- Renamed toHumanReadableString(...) to toHumanReadable(...) to simplify the api.
+### API Examples
 
-## 1.3.0
+```dart
+// Ultra-precise calculations
+final dataCenter = BigByteConverter.fromExaBytes(BigInt.from(5));
+final cosmic = BigByteConverter.fromYottaBytes(BigInt.one);
 
-- Upgrade to null safety.
+// BigInt extensions
+final huge = BigInt.parse('999999999999999999999').bytes;
+
+// Exact arithmetic (no precision loss)
+final exact = BigInt.from(1000000000).bytes;
+print(exact.gigaBytesExact); // BigInt result
+print(exact.gigaBytes);      // double approximation
+```
 
 ## 2.0.0
 
