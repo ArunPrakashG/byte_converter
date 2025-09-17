@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.2.0
+
+### Added / Improved
+
+- Locale-aware parsing for sizes and rates: accepts non‑breaking spaces, underscores, and mixed decimal/group separators (comma/dot) with robust normalization.
+- Stricter DataRate parsing with additional IEC/SI synonyms (e.g., KiB/s, kibps) and clear errors for unknown units.
+- Internal parsing regexes hardened; number formatting remains trimmed (no trailing zeros).
+
+### Notes
+
+- No breaking API changes. Existing parse and humanization behavior preserved.
+
 ## 2.1.0
 
 ### Added - BigInt Support

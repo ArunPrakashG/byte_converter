@@ -1,6 +1,9 @@
 import 'dart:math' as math;
 
+import '_parsing.dart';
 import 'byte_enums.dart';
+import 'format_options.dart';
+// ignore_for_file: prefer_constructors_over_static_methods
 
 /// High-performance byte unit converter with caching
 class ByteConverter implements Comparable<ByteConverter> {
@@ -80,6 +83,7 @@ class ByteConverter implements Comparable<ByteConverter> {
 
   // Cached unit strings
   static const _units = {
+    SizeUnit.PB: ' PB',
     SizeUnit.B: ' B',
     SizeUnit.KB: ' KB',
     SizeUnit.MB: ' MB',
@@ -155,6 +159,7 @@ class ByteConverter implements Comparable<ByteConverter> {
   }
 
   SizeUnit _selectBestUnit() {
+    if (_bytes >= _PB) return SizeUnit.PB;
     if (_bytes >= _TB) return SizeUnit.TB;
     if (_bytes >= _GB) return SizeUnit.GB;
     if (_bytes >= _MB) return SizeUnit.MB;
@@ -163,6 +168,7 @@ class ByteConverter implements Comparable<ByteConverter> {
   }
 
   double _convertToUnit(SizeUnit unit) => switch (unit) {
+        SizeUnit.PB => petaBytes,
         SizeUnit.TB => teraBytes,
         SizeUnit.GB => gigaBytes,
         SizeUnit.MB => megaBytes,
@@ -181,6 +187,68 @@ class ByteConverter implements Comparable<ByteConverter> {
   String toHumanReadable(SizeUnit unit, {int precision = 2}) {
     final value = _convertToUnit(unit);
     return '${_withPrecision(value, precision)}${_units[unit]}';
+  }
+
+  /// Formats this value automatically choosing best unit, supporting SI/IEC/JEDEC and bits.
+  String toHumanReadableAuto({
+    ByteStandard standard = ByteStandard.si,
+    bool useBits = false,
+    int precision = 2,
+    bool showSpace = true,
+    bool fullForm = false,
+    Map<String, String>? fullForms,
+    String? separator,
+    String? spacer,
+    int? minimumFractionDigits,
+    int? maximumFractionDigits,
+    bool signed = false,
+    String? forceUnit,
+  }) {
+    final res = humanize(
+      _bytes,
+      HumanizeOptions(
+        standard: standard,
+        useBits: useBits,
+        precision: precision,
+        showSpace: showSpace,
+        fullForm: fullForm,
+        fullForms: fullForms,
+        separator: separator,
+        spacer: spacer,
+        minimumFractionDigits: minimumFractionDigits,
+        maximumFractionDigits: maximumFractionDigits,
+        signed: signed,
+        forceUnit: forceUnit,
+      ),
+    );
+    return res.text;
+  }
+
+  /// Convenience overload using ByteFormatOptions.
+  String toHumanReadableAutoWith(ByteFormatOptions options) =>
+      toHumanReadableAuto(
+        standard: options.standard,
+        // options.useBytes true -> bytes; false -> bits
+        useBits: !options.useBytes,
+        precision: options.precision,
+        showSpace: options.showSpace,
+        fullForm: options.fullForm,
+        fullForms: options.fullForms,
+        separator: options.separator,
+        spacer: options.spacer,
+        minimumFractionDigits: options.minimumFractionDigits,
+        maximumFractionDigits: options.maximumFractionDigits,
+        signed: options.signed,
+        forceUnit: options.forceUnit,
+      );
+
+  /// Parses a string like "1.5 GB", "2GiB", "100 KB", "10 Mbit" into a ByteConverter.
+  static ByteConverter parse(
+    String input, {
+    ByteStandard standard = ByteStandard.si,
+  }) {
+    final r = parseSize<SizeUnit>(input: input, standard: standard);
+    return ByteConverter(r.valueInBytes);
   }
 
   // Override Object methods

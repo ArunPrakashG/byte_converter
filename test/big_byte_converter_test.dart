@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:byte_converter/byte_converter.dart';
 import 'package:test/test.dart';
 
@@ -20,8 +22,10 @@ void main() {
     });
 
     test('throws on negative bits', () {
-      expect(() => BigByteConverter.withBits(BigInt.from(-8)),
-          throwsArgumentError);
+      expect(
+        () => BigByteConverter.withBits(BigInt.from(-8)),
+        throwsArgumentError,
+      );
     });
 
     test('creates from ByteConverter', () {
@@ -232,6 +236,80 @@ void main() {
 
       final normalAsBig = BigByteConverter.fromByteConverter(normalConverter);
       expect(normalAsBig.asBytes, equals(bigConverter.asBytes));
+    });
+  });
+
+  group('Big parsing and auto humanize', () {
+    test('parse Big SI', () {
+      final c = BigByteConverter.parse('1.5 GB');
+      expect(c.gigaBytes, closeTo(1.5, 1e-9));
+    });
+
+    test('auto humanize IEC large', () {
+      final c = BigByteConverter(BigInt.from(1024 * 1024 * 1024));
+      expect(
+        c.toHumanReadableAuto(standard: ByteStandard.iec),
+        equals('1 GiB'),
+      );
+    });
+  });
+
+  group('DataRate', () {
+    test('parse Mbps', () {
+      final r = DataRate.parse('100 Mbps');
+      expect(r.bitsPerSecond, equals(100 * 1000 * 1000));
+      expect(r.toHumanReadableAuto(), equals('100 Mb/s'));
+    });
+
+    test('format MB/s', () {
+      final r = DataRate.megaBytesPerSecond(12.5);
+      expect(r.toHumanReadableAuto(useBytes: true), equals('12.5 MB/s'));
+    });
+
+    test('parse IEC kibps and KiB/s', () {
+      final a = DataRate.parse('100 kibps', standard: ByteStandard.iec);
+      expect(a.bitsPerSecond, equals(100 * 1024));
+      final b = DataRate.parse('1.5 KiB/s', standard: ByteStandard.iec);
+      expect(b.bitsPerSecond, closeTo(1.5 * 1024 * 8, 1e-9));
+    });
+
+    test('options helper for DataRate', () {
+      final r = DataRate.megaBitsPerSecond(100);
+      final text = r.toHumanReadableAutoWith(
+        const ByteFormatOptions(),
+      );
+      expect(text, equals('100 Mb/s'));
+    });
+
+    test('IEC constructors (bits/bytes)', () {
+      final kb = DataRate.kibiBitsPerSecond(1);
+      expect(kb.bitsPerSecond, equals(1024));
+      final kB = DataRate.kibiBytesPerSecond(1);
+      expect(kB.bytesPerSecond, equals(1024));
+    });
+
+    test('IEC larger units parsing (Pi, Ei, Zi, Yi)', () {
+      final p = DataRate.parse('1 PiB/s', standard: ByteStandard.iec);
+      final expectedPi = (math.pow(1024.0, 5) as double) * 8; // bits per second
+      expect(p.bitsPerSecond, closeTo(expectedPi, 1e-6));
+      final e = DataRate.parse('2 EiB/s', standard: ByteStandard.iec);
+      final expectedEi =
+          2 * (math.pow(1024.0, 6) as double) * 8; // bits per second
+      expect(e.bitsPerSecond, closeTo(expectedEi, 1e-6));
+    });
+
+    test('Signed formatting and forced unit for rates', () {
+      final r = DataRate.megaBitsPerSecond(1920);
+      final text = r.toHumanReadableAuto(
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1,
+        separator: ',',
+        spacer: '',
+        signed: true,
+        forceUnit: 'Mb',
+      );
+      // 1920 Mbps forced to Mb (no scaling) shows '+1,9Gb' if scaled; but with forceUnit we expect '+1920,0Mb'
+      expect(text, equals('+1920,0Mb/s'));
     });
   });
 }

@@ -4,4 +4,7 @@ library byte_converter;
 export 'src/big_byte_converter.dart';
 export 'src/byte_converter_base.dart';
 export 'src/byte_enums.dart';
+export 'src/data_rate.dart';
 export 'src/extensions.dart';
+export 'src/format_options.dart';
+export 'src/unified_parse.dart';
