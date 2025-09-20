@@ -379,7 +379,7 @@ HumanizeResult humanize(double bytes, HumanizeOptions opt) {
             'T': 1e12,
             'G': 1e9,
             'M': 1e6,
-            'K': 1e3
+            'K': 1e3,
           };
           if (single.containsKey(normalized)) forcedBase = single[normalized];
         }

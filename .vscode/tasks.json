@@ -1,62 +1,6 @@
 {
-	"version": "2.0.0",
 	"tasks": [
 		{
-			"label": "dart test",
-			"type": "shell",
-			"command": "dart",
-			"args": [
-				"test"
-			],
-			"isBackground": false,
-			"problemMatcher": [
-				"$dart"
-			],
-			"group": "build"
-		},
-		{
-			"label": "dart test",
-			"type": "shell",
-			"command": "dart",
-			"args": [
-				"test"
-			],
-			"isBackground": false,
-			"problemMatcher": [
-				"$dart"
-			],
-			"group": "build"
-		},
-		{
-			"label": "dart test",
-			"type": "shell",
-			"command": "dart",
-			"args": [
-				"test"
-			],
-			"isBackground": false,
-			"problemMatcher": [
-				"$dart"
-			],
-			"group": "build"
-		},
-		{
-			"label": "dart test",
-			"type": "shell",
-			"command": "dart",
-			"args": [
-				"test"
-			],
-			"isBackground": false,
-			"problemMatcher": [
-				"$dart"
-			],
-			"group": "build"
-		},
-		{
-			"label": "dart test",
-			"type": "shell",
-			"command": "dart",
 			"args": [
 				"test",
 				"test/byte_converter_test.dart",
@@ -64,11 +8,15 @@
 				"vm",
 				"--run-skipped"
 			],
+			"command": "dart",
+			"group": "build",
 			"isBackground": false,
+			"label": "dart test",
 			"problemMatcher": [
 				"$dart"
 			],
-			"group": "build"
+			"type": "shell"
 		}
-	]
+	],
+	"version": "2.0.0"
 }
