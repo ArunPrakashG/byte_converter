@@ -1,22 +1,58 @@
 {
-	"tasks": [
-		{
-			"args": [
-				"test",
-				"test/byte_converter_test.dart",
-				"-p",
-				"vm",
-				"--run-skipped"
-			],
-			"command": "dart",
-			"group": "build",
-			"isBackground": false,
-			"label": "dart test",
-			"problemMatcher": [
-				"$dart"
-			],
-			"type": "shell"
-		}
-	],
-	"version": "2.0.0"
+  // Combined tasks for managing the wiki submodule and running Dart tests
+  "$schema": "vscode://schemas/tasks",
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Wiki: Init/Update Submodules",
+      "type": "shell",
+      "command": "powershell.exe",
+      "args": [
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}/.scripts/wiki-init.ps1"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "Wiki: Pull latest",
+      "type": "shell",
+      "command": "powershell.exe",
+      "args": [
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}/.scripts/wiki-pull.ps1"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "Wiki: Commit & Push",
+      "type": "shell",
+      "command": "powershell.exe",
+      "args": [
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}/.scripts/wiki-push.ps1"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "dart test",
+      "type": "shell",
+      "command": "dart",
+      "args": [
+        "test",
+        "test/byte_converter_test.dart",
+        "-p",
+        "vm",
+        "--run-skipped"
+      ],
+      "group": "build",
+      "isBackground": false,
+      "problemMatcher": []
+    }
+  ]
 }
