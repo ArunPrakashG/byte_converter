@@ -58,21 +58,41 @@ String _trimAndNormalize(String input) {
 /// - Removes grouping separators (space, NBSP, underscore)
 /// - Resolves decimal separator (comma or dot). If both appear, the last one is taken as decimal.
 String _normalizeNumber(String s) {
-  // Remove grouping (spaces, NBSP, underscores)
+  // Remove grouping (spaces, NBSP, underscores) but keep sign, digits, separators
   var t = s.replaceAll(RegExp(r'[\u00A0_ ]'), '');
-  final hasComma = t.contains(',');
-  final hasDot = t.contains('.');
-  if (hasComma && hasDot) {
-    // Assume last occurrence is decimal separator
-    final lastComma = t.lastIndexOf(',');
-    final lastDot = t.lastIndexOf('.');
-    final decIdx = lastComma > lastDot ? lastComma : lastDot;
-    final digitsOnly = t.replaceAll(RegExp(r'[\.,]'), '');
-    return '${digitsOnly.substring(0, decIdx)}.${digitsOnly.substring(decIdx)}';
-  } else if (hasComma && !hasDot) {
-    t = t.replaceAll(',', '.');
+  // Preserve leading sign
+  final sign = t.startsWith('-') ? '-' : (t.startsWith('+') ? '+' : '');
+  if (sign.isNotEmpty) t = t.substring(1);
+
+  // Determine the position (in digit count) of the last separator to use as decimal
+  int? digitDecimalIndex; // number of digits before the decimal point
+  var digitCount = 0;
+  for (var i = 0; i < t.length; i++) {
+    final ch = t[i];
+    if (ch == ',' || ch == '.') {
+      digitDecimalIndex = digitCount; // decimal after this many digits
+    } else if (ch.codeUnitAt(0) >= 48 && ch.codeUnitAt(0) <= 57) {
+      digitCount++;
+    } else {
+      // Unknown character; let parse fail later
+    }
   }
-  return t;
+  // Collect only digits
+  final digitsOnly = t.replaceAll(RegExp('[^0-9]'), '');
+  if (digitsOnly.isEmpty) return '${sign}0';
+  if (digitDecimalIndex == null) {
+    return sign + digitsOnly; // integer
+  }
+  final idx = digitDecimalIndex;
+  if (idx <= 0) {
+    return '${sign}0.$digitsOnly';
+  }
+  if (idx >= digitsOnly.length) {
+    return sign + digitsOnly; // trailing decimal -> integer
+  }
+  final whole = digitsOnly.substring(0, idx);
+  final frac = digitsOnly.substring(idx);
+  return '$sign$whole.$frac';
 }
 
 /// Parses size strings like "1.5 GB", "2GiB", "1024 B", "100 KB", "10 Mb".
@@ -83,7 +103,7 @@ ByteParsingResult<TUnit> parseSize<TUnit>({
 }) {
   final text = _trimAndNormalize(input);
   final regex = RegExp(
-    r'^\s*([+-]?(?:[\d_\u00A0\s]+(?:[\.,][\d_\u00A0\s]+)?)|\d+)\s*([A-Za-z]+)?\s*$',
+    r'^\s*([+-]?[0-9\.,\u00A0_\s]+)\s*([A-Za-z]+)?\s*$',
   );
   final m = regex.firstMatch(text);
   if (m == null) {
@@ -216,10 +236,12 @@ ByteParsingResult<TUnit> parseSize<TUnit>({
           // SI expects symbols like KB, MB, GB; also Mb, Gb etc for bits
           final upperNoB =
               isLowerB ? upper.substring(0, upper.length - 1) : upper;
-          final match = _siUnits.firstWhere(
-            (e) => e.symbol.toUpperCase() == upperNoB,
-            orElse: () => const _UnitDef('B', SizeUnit.B, 1),
-          );
+          final found =
+              _siUnits.where((e) => e.symbol.toUpperCase() == upperNoB);
+          if (found.isEmpty) {
+            throw FormatException('Unknown SI unit: $unitStr');
+          }
+          final match = found.first;
           multiplier = match.multiplier;
           if (isLowerB) multiplier /= 8; // bits to bytes
           unit = match.unit as TUnit;
@@ -664,7 +686,7 @@ ByteParsingResult<BigSizeUnit> parseSizeBig({
 }) {
   final text = _trimAndNormalize(input);
   final regex = RegExp(
-    r'^\s*([+-]?(?:[\d_\u00A0\s]+(?:[\.,][\d_\u00A0\s]+)?)|\d+)\s*([A-Za-z]+)?\s*$',
+    r'^\s*([+-]?[0-9\.,\u00A0_\s]+)\s*([A-Za-z]+)?\s*$',
   );
   final m = regex.firstMatch(text);
   if (m == null) {
@@ -809,7 +831,10 @@ ByteParsingResult<BigSizeUnit> parseSizeBig({
             'KB': BigSizeUnit.KB,
             'B': BigSizeUnit.B,
           };
-          multiplier = map[upperNoB] ?? 1.0;
+          if (!map.containsKey(upperNoB)) {
+            throw FormatException('Unknown SI unit: $unitStr');
+          }
+          multiplier = map[upperNoB]!;
           unit = unitMap[upperNoB];
           if (isLowerB) multiplier /= 8;
           break;
