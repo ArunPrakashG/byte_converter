@@ -1,7 +1,10 @@
 import 'dart:math' as math;
 
+import '_parsing.dart';
 import 'byte_converter_base.dart';
 import 'byte_enums.dart';
+// ignore_for_file: non_constant_identifier_names, avoid_equals_and_hash_code_on_mutable_classes, prefer_constructors_over_static_methods
+import 'format_options.dart';
 
 /// High-performance byte unit converter using BigInt for arbitrary precision
 class BigByteConverter implements Comparable<BigByteConverter> {
@@ -189,6 +192,58 @@ class BigByteConverter implements Comparable<BigByteConverter> {
     return '${_withPrecision(value, precision)}${_getUnitString(unit)}';
   }
 
+  /// Auto humanize with SI/IEC/JEDEC using helper
+  String toHumanReadableAuto({
+    ByteStandard standard = ByteStandard.si,
+    bool useBits = false,
+    int precision = 2,
+    bool showSpace = true,
+    bool fullForm = false,
+    Map<String, String>? fullForms,
+    String? separator,
+    String? spacer,
+    int? minimumFractionDigits,
+    int? maximumFractionDigits,
+    bool signed = false,
+    String? forceUnit,
+  }) {
+    final res = humanize(
+      _bytes.toDouble(),
+      HumanizeOptions(
+        standard: standard,
+        useBits: useBits,
+        precision: precision,
+        showSpace: showSpace,
+        fullForm: fullForm,
+        fullForms: fullForms,
+        separator: separator,
+        spacer: spacer,
+        minimumFractionDigits: minimumFractionDigits,
+        maximumFractionDigits: maximumFractionDigits,
+        signed: signed,
+        forceUnit: forceUnit,
+      ),
+    );
+    return res.text;
+  }
+
+  /// Convenience overload using ByteFormatOptions.
+  String toHumanReadableAutoWith(ByteFormatOptions options) =>
+      toHumanReadableAuto(
+        standard: options.standard,
+        useBits: !options.useBytes,
+        precision: options.precision,
+        showSpace: options.showSpace,
+        fullForm: options.fullForm,
+        fullForms: options.fullForms,
+        separator: options.separator,
+        spacer: options.spacer,
+        minimumFractionDigits: options.minimumFractionDigits,
+        maximumFractionDigits: options.maximumFractionDigits,
+        signed: options.signed,
+        forceUnit: options.forceUnit,
+      );
+
   double _convertToUnit(BigSizeUnit unit) => switch (unit) {
         BigSizeUnit.YB => yottaBytes,
         BigSizeUnit.ZB => zettaBytes,
@@ -256,5 +311,29 @@ class BigByteConverter implements Comparable<BigByteConverter> {
   // Conversion to regular ByteConverter (may lose precision)
   ByteConverter toByteConverter() {
     return ByteConverter(_bytes.toDouble());
+  }
+
+  /// Parses a size string into BigByteConverter using the given standard.
+  /// If the parsed number is fractional, rounding is applied as per mode.
+  static BigByteConverter parse(
+    String input, {
+    ByteStandard standard = ByteStandard.si,
+    RoundingMode rounding = RoundingMode.round,
+  }) {
+    final r = parseSizeBig(input: input, standard: standard);
+    final bytes = r.valueInBytes;
+    BigInt result;
+    switch (rounding) {
+      case RoundingMode.floor:
+        result = BigInt.from(bytes.floor());
+        break;
+      case RoundingMode.ceil:
+        result = BigInt.from(bytes.ceil());
+        break;
+      case RoundingMode.round:
+        result = BigInt.from(bytes.round());
+        break;
+    }
+    return BigByteConverter(result);
   }
 }

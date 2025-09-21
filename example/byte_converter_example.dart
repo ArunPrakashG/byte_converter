@@ -87,4 +87,13 @@ void main() {
   final hugeJson = hugeNumber.toJson();
   final restoredHuge = BigByteConverter.fromJson(hugeJson);
   print('Huge number preserved: ${restoredHuge.asBytes}');
+
+  // Parsing strings
+  final parsed = ByteConverter.parse('1.5 GB');
+  print('Parsed: $parsed');
+
+  // Data rate parsing and formatting
+  final rate = DataRate.parse('100 Mbps');
+  print('Rate: ${rate.toHumanReadableAuto()}');
+  print('Rate (bytes): ${rate.toHumanReadableAuto(useBytes: true)}');
 }

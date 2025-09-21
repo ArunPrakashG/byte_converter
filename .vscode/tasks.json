@@ -1,0 +1,22 @@
+{
+	"tasks": [
+		{
+			"args": [
+				"test",
+				"test/byte_converter_test.dart",
+				"-p",
+				"vm",
+				"--run-skipped"
+			],
+			"command": "dart",
+			"group": "build",
+			"isBackground": false,
+			"label": "dart test",
+			"problemMatcher": [
+				"$dart"
+			],
+			"type": "shell"
+		}
+	],
+	"version": "2.0.0"
+}

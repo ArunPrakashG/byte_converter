@@ -102,6 +102,111 @@ void main() {
     });
   });
 
+  group('Parsing and Auto Humanize', () {
+    test('parse SI units', () {
+      final c = ByteConverter.parse('1.5 GB');
+      expect(c.gigaBytes, closeTo(1.5, 1e-9));
+    });
+
+    test('parse JEDEC units', () {
+      final c = ByteConverter.parse('1 MB', standard: ByteStandard.jedec);
+      expect(c.asBytes(), equals(1024 * 1024));
+    });
+
+    test('auto humanize SI and IEC', () {
+      final c = ByteConverter(1024);
+      expect(c.toHumanReadableAuto(), equals('1.02 KB'));
+      expect(
+        c.toHumanReadableAuto(standard: ByteStandard.iec),
+        equals('1 KiB'),
+      );
+    });
+  });
+
+  group('Locale-aware parsing', () {
+    test('parses NBSP and comma decimal', () {
+      const input = '1\u00A0234,56 KB'; // 1 234,56 KB
+      final c = ByteConverter.parse(input);
+      expect(c.asBytes(), closeTo(1234560.0, 1e-6));
+    });
+
+    test('parses underscores in number', () {
+      final c = ByteConverter.parse('12_345.67 MB');
+      expect(c.asBytes(), closeTo(12345670000.0, 1e-3));
+    });
+  });
+
+  group('Full-form parsing and advanced formatting', () {
+    test('parses full-form units (SI bytes)', () {
+      final c = ByteConverter.parse('1.5 megabytes');
+      expect(c.megaBytes, closeTo(1.5, 1e-9));
+    });
+
+    test('parses full-form IEC units and bits', () {
+      final c1 = ByteConverter.parse('2 kibibytes', standard: ByteStandard.iec);
+      expect(c1.kibiBytes, closeTo(2.0, 1e-9));
+      final c2 = ByteConverter.parse('10 megabits');
+      expect(c2.asBytes(), closeTo(10 * 1e6 / 8, 1e-6));
+    });
+
+    test('fullForm output and custom fullForms', () {
+      final c = ByteConverter(1500);
+      final text = c.toHumanReadableAutoWith(
+        const ByteFormatOptions(
+          useBytes: true,
+          fullForm: true,
+        ),
+      );
+      expect(text, equals('1.5 kilobytes'));
+
+      final text2 = c.toHumanReadableAutoWith(
+        const ByteFormatOptions(
+          useBytes: true,
+          fullForm: true,
+          fullForms: {'kilobytes': 'kilo-octets'},
+        ),
+      );
+      expect(text2, equals('1.5 kilo-octets'));
+    });
+
+    test('separator, spacer, min/max fraction digits, signed, forced unit', () {
+      final c = ByteConverter(1920);
+      final text = c.toHumanReadableAuto(
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1,
+        separator: ',',
+        spacer: '',
+        signed: true,
+        forceUnit: 'KB',
+      );
+      expect(text, equals('+1,9KB'));
+    });
+  });
+
+  group('Unified parse auto', () {
+    test('returns normal below threshold', () {
+      final r = parseByteSizeAuto('1 GB', thresholdBytes: 1000000000000);
+      expect(r.isBig, isFalse);
+      expect((r as ParsedNormal).value.gigaBytes, closeTo(1.0, 1e-9));
+    });
+
+    test('returns big at/above threshold', () {
+      final r = parseByteSizeAuto('1 EB', thresholdBytes: 1000000000000);
+      expect(r.isBig, isTrue);
+      expect((r as ParsedBig).value.exaBytes, closeTo(1.0, 1e-9));
+    });
+  });
+
+  group('Format options helper', () {
+    test('ByteConverter uses options', () {
+      final bc = ByteConverter(1024);
+      final text = bc.toHumanReadableAutoWith(
+        const ByteFormatOptions(standard: ByteStandard.iec, useBytes: true),
+      );
+      expect(text, equals('1 KiB'));
+    });
+  });
+
   group('JSON Serialization', () {
     test('toJson/fromJson', () {
       final original = ByteConverter(1024);
