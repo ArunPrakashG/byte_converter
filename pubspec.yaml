@@ -1,14 +1,31 @@
 name: byte_converter
-description: Provides a simple interface for conversion of Digital values such as Bytes, KiloBytes etc. Now with BigInt support for arbitrary precision calculations.
-version: 2.2.0
+description: High-performance byte and data-rate conversions with BigInt precision, expression parsing, transfer planning, storage profiles, and localization-ready formatting.
+version: 2.3.0
 homepage: https://github.com/ArunPrakashG/byte_converter
+repository: https://github.com/ArunPrakashG/byte_converter
+issue_tracker: https://github.com/ArunPrakashG/byte_converter/issues
+documentation: https://github.com/ArunPrakashG/byte_converter/wiki
+topics:
+  - bytes
+  - data-conversion
+  - unit-conversion
+  - formatting
+  - bigint
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
 
+dependencies:
+  intl: ^0.19.0
+
 dev_dependencies:
-  test: ^1.14.4
-  personal_flutter_lints:
-    git:
-      url: https://github.com/ArunPrakashG/personal_flutter_lints.git
-      ref: main
+  lints: ^3.0.0
+  test: ^1.25.0
+
+platforms:
+  android:
+  ios:
+  linux:
+  macos:
+  web:
+  windows:

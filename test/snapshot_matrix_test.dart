@@ -1,8 +1,6 @@
 import 'package:byte_converter/byte_converter.dart';
 import 'package:test/test.dart';
 
-String snap(dynamic v) => v.toString();
-
 void main() {
   group('Snapshot matrix - sizes', () {
     final samples = <double>[0, 512, 1024, 1500, 1536, 10 * 1024 * 1024];
@@ -21,15 +19,19 @@ void main() {
     ];
 
     test('ByteConverter snapshots', () {
-      final out = <String>[];
-      for (final s in samples) {
-        final bc = ByteConverter(s);
-        for (final cfg in configs) {
-          out.add('${s.toInt()}|$cfg|${bc.toHumanReadableAutoWith(cfg)}');
-        }
-      }
-      // Snapshot: deterministic list joined
-      expect(out.join('\n'), contains('KB')); // sanity check
+      final snapshot = FormatterSnapshot.size(
+        sizeSamples: samples,
+        options: configs,
+        sampleLabeler: (v) => v.toInt().toString(),
+      );
+      final matrix = snapshot.buildMatrix();
+      expect(matrix.length, samples.length * configs.length);
+      expect(
+        matrix.any((row) => row[2].contains('KB')),
+        isTrue,
+      );
+      expect(snapshot.toMarkdownTable(),
+          contains('| sample | option | formatted |'));
     });
   });
 
@@ -54,15 +56,18 @@ void main() {
     ];
 
     test('DataRate snapshots', () {
-      final out = <String>[];
-      for (final r in samples) {
-        for (final cfg in configs) {
-          out.add(
-            '${r.bitsPerSecond.toInt()}|$cfg|${r.toHumanReadableAutoWith(cfg)}',
-          );
-        }
-      }
-      expect(out.join('\n'), contains('/s')); // sanity check
+      final snapshot = FormatterSnapshot.rate(
+        rateSamples: samples,
+        options: configs,
+        sampleLabeler: (rate) => '${rate.bitsPerSecond.toInt()} bps',
+      );
+      final matrix = snapshot.buildMatrix();
+      expect(matrix.length, samples.length * configs.length);
+      expect(
+        matrix.any((row) => row[2].contains('/s')),
+        isTrue,
+      );
+      expect(snapshot.toCsv(), contains('sample,option,formatted'));
     });
   });
 }

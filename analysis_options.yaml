@@ -1,8 +1,13 @@
+include: package:lints/recommended.yaml
+
 analyzer:
+  language:
+    strict-inference: true
+    strict-raw-types: true
   errors:
     avoid_positional_boolean_parameters: ignore
     avoid_print: ignore
-include: package:personal_flutter_lints/analysis_options.yaml
 
 linter:
   rules:
+    constant_identifier_names: false

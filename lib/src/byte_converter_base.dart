@@ -3,6 +3,8 @@ import 'dart:math' as math;
 import '_parsing.dart';
 import 'byte_enums.dart';
 import 'format_options.dart';
+import 'parse_result.dart';
+import 'storage_profile.dart';
 // ignore_for_file: prefer_constructors_over_static_methods
 
 /// High-performance byte unit converter with caching
@@ -114,6 +116,9 @@ class ByteConverter implements Comparable<ByteConverter> {
   double get tebiBytes => _bytes / _TIB;
   double get pebiBytes => _bytes / _PIB;
 
+  /// Exact byte representation of this value.
+  double get bytes => _bytes;
+
   num asBytes({int precision = 2}) => _withPrecision(_bytes, precision);
   int get bits => _bits;
 
@@ -147,6 +152,54 @@ class ByteConverter implements Comparable<ByteConverter> {
   ByteConverter roundToBlock() => ByteConverter(blocks * _BLOCK_SIZE);
   ByteConverter roundToPage() => ByteConverter(pages * _PAGE_SIZE);
   ByteConverter roundToWord() => ByteConverter(words * _WORD_SIZE);
+
+  /// Aligns this converter to a [StorageProfile] bucket using the configured rounding rules.
+  ByteConverter roundToProfile(
+    StorageProfile profile, {
+    String? alignment,
+    RoundingMode? rounding,
+  }) {
+    final resolved = profile.resolve(alignment);
+    final blockSize = resolved.blockSizeBytes.toDouble();
+    final mode = profile.roundingFor(
+      alignment: alignment,
+      override: rounding,
+    );
+    final quotient = _bytes / blockSize;
+    final multiplier = switch (mode) {
+      RoundingMode.floor => quotient.floor(),
+      RoundingMode.ceil => quotient.ceil(),
+      RoundingMode.round => quotient.round(),
+    };
+    return ByteConverter(multiplier * blockSize);
+  }
+
+  /// Calculates the slack (unused bytes) after aligning to the specified [StorageProfile].
+  ByteConverter alignmentSlack(
+    StorageProfile profile, {
+    String? alignment,
+    RoundingMode? rounding,
+  }) {
+    final aligned = roundToProfile(
+      profile,
+      alignment: alignment,
+      rounding: rounding,
+    );
+    final slack = aligned._bytes - _bytes;
+    return ByteConverter(slack <= 0 ? 0.0 : slack);
+  }
+
+  /// Returns true when this value already satisfies the requested profile alignment.
+  bool isAligned(
+    StorageProfile profile, {
+    String? alignment,
+  }) {
+    final blockSize = profile.blockSizeBytes(alignment).toDouble();
+    if (blockSize == 0) return false;
+    final remainder = _bytes % blockSize;
+    const epsilon = 1e-9;
+    return remainder.abs() < epsilon || (blockSize - remainder).abs() < epsilon;
+  }
 
   @override
   int compareTo(ByteConverter other) => _bits.compareTo(other._bits);
@@ -203,6 +256,8 @@ class ByteConverter implements Comparable<ByteConverter> {
     int? maximumFractionDigits,
     bool signed = false,
     String? forceUnit,
+    String? locale,
+    bool useGrouping = true,
   }) {
     final res = humanize(
       _bytes,
@@ -219,6 +274,8 @@ class ByteConverter implements Comparable<ByteConverter> {
         maximumFractionDigits: maximumFractionDigits,
         signed: signed,
         forceUnit: forceUnit,
+        locale: locale,
+        useGrouping: useGrouping,
       ),
     );
     return res.text;
@@ -240,6 +297,8 @@ class ByteConverter implements Comparable<ByteConverter> {
         maximumFractionDigits: options.maximumFractionDigits,
         signed: options.signed,
         forceUnit: options.forceUnit,
+        locale: options.locale,
+        useGrouping: options.useGrouping,
       );
 
   /// Parses a string like "1.5 GB", "2GiB", "100 KB", "10 Mbit" into a ByteConverter.
@@ -249,6 +308,45 @@ class ByteConverter implements Comparable<ByteConverter> {
   }) {
     final r = parseSize<SizeUnit>(input: input, standard: standard);
     return ByteConverter(r.valueInBytes);
+  }
+
+  /// Safe parsing variant that never throws and returns diagnostics on failure.
+  static ParseResult<ByteConverter> tryParse(
+    String input, {
+    ByteStandard standard = ByteStandard.si,
+  }) {
+    try {
+      final r = parseSize<SizeUnit>(input: input, standard: standard);
+      if (r.valueInBytes.isNaN || r.valueInBytes.isInfinite) {
+        throw FormatException('Invalid numeric value in input: $input');
+      }
+      if (r.valueInBytes < 0) {
+        return ParseResult.failure(
+          originalInput: input,
+          error: const ParseError(message: 'Bytes cannot be negative'),
+          normalizedInput: r.normalizedInput,
+        );
+      }
+      final value = ByteConverter(r.valueInBytes);
+      return ParseResult.success(
+        originalInput: input,
+        value: value,
+        normalizedInput: r.normalizedInput,
+        detectedUnit: r.unitSymbol,
+        isBitInput: r.isBitInput,
+        parsedNumber: r.rawValue,
+      );
+    } on FormatException catch (e) {
+      return ParseResult.failure(
+        originalInput: input,
+        error: ParseError(
+          message: e.message,
+          position: e.offset,
+          exception: e,
+        ),
+        normalizedInput: input.trim().isEmpty ? null : input.trim(),
+      );
+    }
   }
 
   // Override Object methods

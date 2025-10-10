@@ -123,6 +123,42 @@ void main() {
     });
   });
 
+  group('ByteConverter.tryParse', () {
+    test('returns success with diagnostics for valid input', () {
+      final result = ByteConverter.tryParse('1.5 GB');
+      expect(result.isSuccess, isTrue);
+      expect(result.value, isNotNull);
+      expect(result.value!.gigaBytes, closeTo(1.5, 1e-9));
+      expect(result.normalizedInput, equals('1.5 GB'));
+      expect(result.detectedUnit, equals('GB'));
+      expect(result.isBitInput, isFalse);
+      expect(result.parsedNumber, closeTo(1.5, 1e-9));
+    });
+
+    test('captures bit inputs', () {
+      final result = ByteConverter.tryParse('8 Mb');
+      expect(result.isSuccess, isTrue);
+      expect(result.isBitInput, isTrue);
+      expect(result.detectedUnit, equals('Mb'));
+      expect(result.normalizedInput, equals('8 Mb'));
+    });
+
+    test('returns failure for malformed text', () {
+      final result = ByteConverter.tryParse('abc');
+      expect(result.isSuccess, isFalse);
+      expect(result.value, isNull);
+      expect(result.error, isNotNull);
+      expect(result.error!.message, contains('Invalid size format'));
+    });
+
+    test('returns failure for negative values', () {
+      final result = ByteConverter.tryParse('-2 MB');
+      expect(result.isSuccess, isFalse);
+      expect(result.error, isNotNull);
+      expect(result.error!.message, contains('cannot be negative'));
+    });
+  });
+
   group('Locale-aware parsing', () {
     test('parses NBSP and comma decimal', () {
       const input = '1\u00A0234,56 KB'; // 1 234,56 KB

@@ -1,6 +1,7 @@
 import '_parsing.dart';
 import 'byte_enums.dart';
 import 'format_options.dart';
+import 'parse_result.dart';
 // ignore_for_file: prefer_constructors_over_static_methods
 
 /// Represents a network/data rate. Internally stored as bits per second.
@@ -64,6 +65,8 @@ class DataRate implements Comparable<DataRate> {
     int? maximumFractionDigits,
     bool signed = false,
     String? forceUnit,
+    String? locale,
+    bool useGrouping = true,
   }) {
     final baseBytesPerSec = useBytes ? bytesPerSecond : bitsPerSecond / 8.0;
     // Reuse humanize on bytes per second and then append '/s'
@@ -82,6 +85,8 @@ class DataRate implements Comparable<DataRate> {
         maximumFractionDigits: maximumFractionDigits,
         signed: signed,
         forceUnit: forceUnit,
+        locale: locale,
+        useGrouping: useGrouping,
       ),
     );
     // Use existing formatted text from humanize (includes sign/spacing/locale), then append '/s'
@@ -104,6 +109,8 @@ class DataRate implements Comparable<DataRate> {
         maximumFractionDigits: options.maximumFractionDigits,
         signed: options.signed,
         forceUnit: options.forceUnit,
+        locale: options.locale,
+        useGrouping: options.useGrouping,
       );
 
   static DataRate parse(
@@ -112,6 +119,45 @@ class DataRate implements Comparable<DataRate> {
   }) {
     final r = parseRate(input: input, standard: standard);
     return DataRate.bitsPerSecond(r.bitsPerSecond);
+  }
+
+  /// Safe parsing variant that returns diagnostics instead of throwing exceptions.
+  static ParseResult<DataRate> tryParse(
+    String input, {
+    ByteStandard standard = ByteStandard.si,
+  }) {
+    try {
+      final r = parseRate(input: input, standard: standard);
+      if (r.bitsPerSecond.isNaN || r.bitsPerSecond.isInfinite) {
+        throw FormatException('Invalid numeric value in input: $input');
+      }
+      if (r.bitsPerSecond < 0) {
+        return ParseResult.failure(
+          originalInput: input,
+          error: const ParseError(message: 'Rate cannot be negative'),
+          normalizedInput: r.normalizedInput,
+        );
+      }
+      final rate = DataRate.bitsPerSecond(r.bitsPerSecond);
+      return ParseResult.success(
+        originalInput: input,
+        value: rate,
+        normalizedInput: r.normalizedInput,
+        detectedUnit: r.unitSymbol,
+        isBitInput: r.isBitInput,
+        parsedNumber: r.rawValue,
+      );
+    } on FormatException catch (e) {
+      return ParseResult.failure(
+        originalInput: input,
+        error: ParseError(
+          message: e.message,
+          position: e.offset,
+          exception: e,
+        ),
+        normalizedInput: input.trim().isEmpty ? null : input.trim(),
+      );
+    }
   }
 
   @override

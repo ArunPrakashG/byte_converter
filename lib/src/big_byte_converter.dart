@@ -5,6 +5,8 @@ import 'byte_converter_base.dart';
 import 'byte_enums.dart';
 // ignore_for_file: non_constant_identifier_names, avoid_equals_and_hash_code_on_mutable_classes, prefer_constructors_over_static_methods
 import 'format_options.dart';
+import 'parse_result.dart';
+import 'storage_profile.dart';
 
 /// High-performance byte unit converter using BigInt for arbitrary precision
 class BigByteConverter implements Comparable<BigByteConverter> {
@@ -110,6 +112,7 @@ class BigByteConverter implements Comparable<BigByteConverter> {
   // Unit getters - return double for practical calculations
   BigInt get asBytes => _bytes;
   BigInt get bits => _bits;
+  BigInt get bytes => _bytes;
 
   // Decimal unit getters
   double get kiloBytes => _bytes.toDouble() / _KB.toDouble();
@@ -183,6 +186,63 @@ class BigByteConverter implements Comparable<BigByteConverter> {
   BigByteConverter roundToPage() => BigByteConverter(pages * _PAGE_SIZE);
   BigByteConverter roundToWord() => BigByteConverter(words * _WORD_SIZE);
 
+  BigByteConverter roundToProfile(
+    StorageProfile profile, {
+    String? alignment,
+    RoundingMode? rounding,
+  }) {
+    final resolved = profile.resolve(alignment);
+    final blockSize = BigInt.from(resolved.blockSizeBytes);
+    final mode = profile.roundingFor(
+      alignment: alignment,
+      override: rounding,
+    );
+    final remainder = _bytes % blockSize;
+    if (remainder == BigInt.zero) {
+      return BigByteConverter(_bytes);
+    }
+    final quotient = _bytes ~/ blockSize;
+    final floorAligned = BigByteConverter(blockSize * quotient);
+    switch (mode) {
+      case RoundingMode.floor:
+        return floorAligned;
+      case RoundingMode.ceil:
+        return BigByteConverter(blockSize * (quotient + BigInt.one));
+      case RoundingMode.round:
+        final half = blockSize >> 1;
+        final shouldRoundUp = remainder >= half;
+        return shouldRoundUp
+            ? BigByteConverter(blockSize * (quotient + BigInt.one))
+            : floorAligned;
+    }
+  }
+
+  BigByteConverter alignmentSlack(
+    StorageProfile profile, {
+    String? alignment,
+    RoundingMode? rounding,
+  }) {
+    final aligned = roundToProfile(
+      profile,
+      alignment: alignment,
+      rounding: rounding,
+    );
+    final diff = aligned._bytes - _bytes;
+    if (diff <= BigInt.zero) {
+      return BigByteConverter(BigInt.zero);
+    }
+    return BigByteConverter(diff);
+  }
+
+  bool isAligned(
+    StorageProfile profile, {
+    String? alignment,
+  }) {
+    final blockSize = BigInt.from(profile.blockSizeBytes(alignment));
+    if (blockSize == BigInt.zero) return false;
+    return _bytes % blockSize == BigInt.zero;
+  }
+
   @override
   int compareTo(BigByteConverter other) => _bits.compareTo(other._bits);
 
@@ -206,6 +266,8 @@ class BigByteConverter implements Comparable<BigByteConverter> {
     int? maximumFractionDigits,
     bool signed = false,
     String? forceUnit,
+    String? locale,
+    bool useGrouping = true,
   }) {
     final res = humanize(
       _bytes.toDouble(),
@@ -222,6 +284,8 @@ class BigByteConverter implements Comparable<BigByteConverter> {
         maximumFractionDigits: maximumFractionDigits,
         signed: signed,
         forceUnit: forceUnit,
+        locale: locale,
+        useGrouping: useGrouping,
       ),
     );
     return res.text;
@@ -242,6 +306,8 @@ class BigByteConverter implements Comparable<BigByteConverter> {
         maximumFractionDigits: options.maximumFractionDigits,
         signed: options.signed,
         forceUnit: options.forceUnit,
+        locale: options.locale,
+        useGrouping: options.useGrouping,
       );
 
   double _convertToUnit(BigSizeUnit unit) => switch (unit) {
@@ -335,5 +401,57 @@ class BigByteConverter implements Comparable<BigByteConverter> {
         break;
     }
     return BigByteConverter(result);
+  }
+
+  /// Safe parsing variant that returns diagnostics instead of throwing exceptions.
+  static ParseResult<BigByteConverter> tryParse(
+    String input, {
+    ByteStandard standard = ByteStandard.si,
+    RoundingMode rounding = RoundingMode.round,
+  }) {
+    try {
+      final r = parseSizeBig(input: input, standard: standard);
+      if (r.valueInBytes.isNaN || r.valueInBytes.isInfinite) {
+        throw FormatException('Invalid numeric value in input: $input');
+      }
+      BigInt bytes;
+      switch (rounding) {
+        case RoundingMode.floor:
+          bytes = BigInt.from(r.valueInBytes.floor());
+          break;
+        case RoundingMode.ceil:
+          bytes = BigInt.from(r.valueInBytes.ceil());
+          break;
+        case RoundingMode.round:
+          bytes = BigInt.from(r.valueInBytes.round());
+          break;
+      }
+      if (bytes.isNegative) {
+        return ParseResult.failure(
+          originalInput: input,
+          error: const ParseError(message: 'Bytes cannot be negative'),
+          normalizedInput: r.normalizedInput,
+        );
+      }
+      final value = BigByteConverter(bytes);
+      return ParseResult.success(
+        originalInput: input,
+        value: value,
+        normalizedInput: r.normalizedInput,
+        detectedUnit: r.unitSymbol,
+        isBitInput: r.isBitInput,
+        parsedNumber: r.rawValue,
+      );
+    } on FormatException catch (e) {
+      return ParseResult.failure(
+        originalInput: input,
+        error: ParseError(
+          message: e.message,
+          position: e.offset,
+          exception: e,
+        ),
+        normalizedInput: input.trim().isEmpty ? null : input.trim(),
+      );
+    }
   }
 }

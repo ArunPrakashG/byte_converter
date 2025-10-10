@@ -254,6 +254,40 @@ void main() {
     });
   });
 
+  group('BigByteConverter.tryParse', () {
+    test('returns success with diagnostics for valid input', () {
+      final result = BigByteConverter.tryParse('1.5 GB');
+      expect(result.isSuccess, isTrue);
+    expect(result.value, isNotNull);
+    expect(result.value!.asBytes, equals(BigInt.from(1500000000)));
+      expect(result.normalizedInput, equals('1.5 GB'));
+      expect(result.detectedUnit, equals('GB'));
+      expect(result.isBitInput, isFalse);
+    });
+
+    test('captures IEC bit units', () {
+      final result = BigByteConverter.tryParse('8 kibibits', standard: ByteStandard.iec);
+      expect(result.isSuccess, isTrue);
+      expect(result.isBitInput, isTrue);
+      expect(result.detectedUnit, equals('Kib'));
+      expect(result.normalizedInput, equals('8 Kib'));
+    });
+
+    test('returns failure for malformed text', () {
+      final result = BigByteConverter.tryParse('1.23 XB');
+      expect(result.isSuccess, isFalse);
+      expect(result.error, isNotNull);
+      expect(result.error!.message, contains('Unknown'));
+    });
+
+    test('returns failure for negative values', () {
+      final result = BigByteConverter.tryParse('-2 MB');
+      expect(result.isSuccess, isFalse);
+      expect(result.error, isNotNull);
+      expect(result.error!.message, contains('cannot be negative'));
+    });
+  });
+
   group('DataRate', () {
     test('parse Mbps', () {
       final r = DataRate.parse('100 Mbps');
@@ -310,6 +344,41 @@ void main() {
       );
       // 1920 Mbps forced to Mb (no scaling) shows '+1,9Gb' if scaled; but with forceUnit we expect '+1920,0Mb'
       expect(text, equals('+1920,0Mb/s'));
+    });
+
+    test('tryParse returns diagnostics for bit inputs', () {
+      final result = DataRate.tryParse('100 Mbps');
+      expect(result.isSuccess, isTrue);
+      expect(result.value, isNotNull);
+      expect(result.value!.bitsPerSecond, equals(100 * 1000 * 1000));
+      expect(result.detectedUnit, equals('Mb'));
+      expect(result.normalizedInput, equals('100 Mb/s'));
+      expect(result.isBitInput, isTrue);
+    });
+
+    test('tryParse returns diagnostics for byte inputs', () {
+      final result = DataRate.tryParse('12.5 MB/s');
+      expect(result.isSuccess, isTrue);
+      expect(result.value, isNotNull);
+      expect(result.value!.toHumanReadableAuto(useBytes: true), equals('12.5 MB/s'));
+      expect(result.detectedUnit, equals('MB'));
+      expect(result.normalizedInput, equals('12.5 MB/s'));
+      expect(result.isBitInput, isFalse);
+    });
+
+    test('tryParse handles malformed rate text', () {
+      final result = DataRate.tryParse('oops');
+      expect(result.isSuccess, isFalse);
+      expect(result.value, isNull);
+      expect(result.error, isNotNull);
+      expect(result.error!.message, contains('Invalid rate format'));
+    });
+
+    test('tryParse rejects negative rates', () {
+      final result = DataRate.tryParse('-10 Mbps');
+      expect(result.isSuccess, isFalse);
+      expect(result.error, isNotNull);
+      expect(result.error!.message, contains('cannot be negative'));
     });
   });
 }

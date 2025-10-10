@@ -1,5 +1,25 @@
 # Changelog
 
+## 2.3.0
+
+### Added / Improved
+
+- Transfer planning helpers (`TransferPlan`, `DataRate.transferableBytes`, `BigDataRate.transferableBytes`) with ETAs, remaining payload metrics, and friendly strings.
+- Storage alignment profiles that round converters to device-specific blocks and surface slack diagnostics.
+- `ByteStats`/`BigByteStats` aggregations for sums, averages, percentiles, and histogram buckets across mixed inputs.
+- Composite expression parsing for sizes and rates, including arithmetic operators, parentheses, and duration tokens.
+- `FormatterSnapshot` utilities for generating Markdown/CSV matrices reused in documentation and snapshot tests.
+- `BigDataRate` for BigInt-precise throughput conversions that interoperate with `DataRate`.
+- Locale-aware humanize formatting via new `ByteFormatOptions.locale` and `useGrouping` controls, powered by `intl`.
+- Shared humanize pipeline now caches `NumberFormat` instances and gracefully falls back to legacy formatting if locale data is missing.
+- Added regression tests covering localized output and grouping toggles for sizes and rates.
+- New `byte_converter_intl.dart` opt-in entry enables locale formatting without forcing `intl` on the default import.
+- Built-in localized unit-name maps (en, de, fr) plus `registerLocalizedUnitNames`/`clearLocalizedUnitNames` helpers for custom translations.
+
+### Notes
+
+- Requires the `intl` package (already listed in `pubspec.yaml`). Consumers can ignore `byte_converter_intl.dart` to avoid the extra dependency in their build output.
+
 ## 2.2.0
 
 ### Added / Improved

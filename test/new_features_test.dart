@@ -1,9 +1,14 @@
 import 'dart:math' as math;
 
 import 'package:byte_converter/byte_converter.dart';
+import 'package:byte_converter/byte_converter_intl.dart' as byte_converter_intl;
 import 'package:test/test.dart';
 
 void main() {
+  setUpAll(byte_converter_intl.enableByteConverterIntl);
+
+  tearDownAll(byte_converter_intl.disableByteConverterIntl);
+
   group('Advanced formatting and parsing (new features)', () {
     test('ByteConverter: useBits + forceUnit (SI bits)', () {
       final c = ByteConverter(1000000); // 1,000,000 bytes -> 8,000,000 bits
@@ -133,6 +138,83 @@ void main() {
       final expectedYi = (math.pow(1024.0, 8) as double) * 8;
       expect(zi.bitsPerSecond, closeTo(expectedZi, 1e-3));
       expect(yi.bitsPerSecond, closeTo(expectedYi, 1e-3));
+    });
+
+    test('Locale-aware formatting applies decimal and grouping separators', () {
+      final c = ByteConverter(123456789); // ~123.456789 MB
+      final text = c.toHumanReadableAuto(
+        locale: 'de_DE',
+        forceUnit: 'MB',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      );
+      expect(text, equals('123,46 MB'));
+    });
+
+    test('Locale-aware formatting honors grouping toggle', () {
+      final c = ByteConverter(9876543210);
+      final grouped = c.toHumanReadableAuto(
+        locale: 'en_US',
+        forceUnit: 'B',
+      );
+      final ungrouped = c.toHumanReadableAuto(
+        locale: 'en_US',
+        forceUnit: 'B',
+        useGrouping: false,
+      );
+      expect(grouped, equals('9,876,543,210 B'));
+      expect(ungrouped, equals('9876543210 B'));
+    });
+
+    test('Unknown locale falls back to default separators', () {
+      final c = ByteConverter(1500);
+      final text = c.toHumanReadableAuto(
+        locale: 'xx_YY',
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1,
+      );
+      expect(text, equals('1.5 KB'));
+    });
+
+    test('Locale full-form names use built-in translations', () {
+      final c = ByteConverter(2000);
+      final text = c.toHumanReadableAuto(
+        locale: 'fr_FR',
+        fullForm: true,
+        forceUnit: 'KB',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      );
+      expect(text, equals('2 kilooctets'));
+    });
+
+    test('Custom localized unit names override defaults', () {
+      registerLocalizedUnitNames('es', {
+        'KB': 'kilobytes-es',
+        'kb': 'kilobits-es',
+      });
+
+      final size = ByteConverter(1024);
+      final text = size.toHumanReadableAuto(
+        locale: 'es_ES',
+        fullForm: true,
+        forceUnit: 'KB',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      );
+      expect(text, equals('1 kilobytes-es'));
+
+      final bits = ByteConverter(1024).toHumanReadableAuto(
+        locale: 'es_ES',
+        fullForm: true,
+        useBits: true,
+        forceUnit: 'kb',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      );
+      expect(bits, equals('8 kilobits-es'));
+
+      clearLocalizedUnitNames('es');
     });
   });
 }
