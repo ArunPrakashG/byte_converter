@@ -321,80 +321,102 @@ ByteParsingResult<TUnit> _parseSizeLiteralInternal<TUnit>({
         unit = null;
         isBits = false;
       } else {
-        switch (standard) {
-          case ByteStandard.si:
-            final upper = token.toUpperCase();
-            final isLowerB = token.isNotEmpty && token[token.length - 1] == 'b';
-            final upperNoB =
-                isLowerB ? upper.substring(0, upper.length - 1) : upper;
-            final candidates =
-                _siUnits.where((e) => e.symbol.toUpperCase() == upperNoB);
-            if (candidates.isEmpty) {
-              throw FormatException('Unknown SI unit: $unitStrRaw');
-            }
-            final found = candidates.first;
-            multiplier = found.multiplier;
-            if (isLowerB) {
-              multiplier = multiplier / 8;
-              isBits = true;
-              normalizedToken = '${found.symbol}b'.toLowerCase();
-            } else {
-              normalizedToken = found.symbol;
-            }
-            unit = found.unit as TUnit;
-            break;
-          case ByteStandard.jedec:
-            final upper = token.toUpperCase();
-            final isLowerB = token.isNotEmpty && token[token.length - 1] == 'b';
-            final key = isLowerB ? upper.substring(0, upper.length - 1) : upper;
-            if (_jedecMultipliers.containsKey(key)) {
-              final base = _jedecMultipliers[key]!;
-              multiplier = base;
-              if (isLowerB) {
-                multiplier = base / 8;
-                isBits = true;
-                normalizedToken = '${key}b'.toLowerCase();
-              } else {
-                normalizedToken = key;
+        bool matchStandard(ByteStandard std) {
+          switch (std) {
+            case ByteStandard.si:
+              final upper = token.toUpperCase();
+              final isLowerB =
+                  token.isNotEmpty && token[token.length - 1] == 'b';
+              final upperNoB =
+                  isLowerB ? upper.substring(0, upper.length - 1) : upper;
+              final candidates =
+                  _siUnits.where((e) => e.symbol.toUpperCase() == upperNoB);
+              if (candidates.isEmpty) {
+                return false;
               }
-              final map = {
-                'KB': SizeUnit.KB,
-                'MB': SizeUnit.MB,
-                'GB': SizeUnit.GB,
-              };
-              unit = map[key] as TUnit?;
-            } else if (key == 'B') {
-              multiplier = 1;
-              normalizedToken = 'B';
-            } else {
-              throw FormatException('Unknown unit for JEDEC: $unitStrRaw');
-            }
-            break;
-          case ByteStandard.iec:
-            final isLowerB = token.isNotEmpty && token[token.length - 1] == 'b';
-            final key = isLowerB ? token.substring(0, token.length - 1) : token;
-            if (_iecSymbols.containsKey(key)) {
-              final base = _iecSymbols[key]!;
-              multiplier = base;
+              final found = candidates.first;
+              final base = found.multiplier;
+              multiplier = isLowerB ? base / 8 : base;
               if (isLowerB) {
-                multiplier = base / 8;
                 isBits = true;
-                normalizedToken = '${key}b'.toLowerCase();
+                normalizedToken = '${found.symbol}b'.toLowerCase();
               } else {
-                normalizedToken = key;
+                normalizedToken = found.symbol;
               }
-              unit = null;
-            } else {
-              throw FormatException('Unknown IEC unit: $unitStrRaw');
+              unit = found.unit as TUnit;
+              return true;
+            case ByteStandard.jedec:
+              final upper = token.toUpperCase();
+              final isLowerB =
+                  token.isNotEmpty && token[token.length - 1] == 'b';
+              final key =
+                  isLowerB ? upper.substring(0, upper.length - 1) : upper;
+              if (_jedecMultipliers.containsKey(key)) {
+                final base = _jedecMultipliers[key]!;
+                multiplier = isLowerB ? base / 8 : base;
+                if (isLowerB) {
+                  isBits = true;
+                  normalizedToken = '${key}b'.toLowerCase();
+                } else {
+                  normalizedToken = key;
+                }
+                final map = {
+                  'KB': SizeUnit.KB,
+                  'MB': SizeUnit.MB,
+                  'GB': SizeUnit.GB,
+                };
+                unit = map[key] as TUnit?;
+                return true;
+              }
+              if (key == 'B') {
+                multiplier = 1;
+                normalizedToken = 'B';
+                unit = null;
+                return true;
+              }
+              return false;
+            case ByteStandard.iec:
+              final isLowerB =
+                  token.isNotEmpty && token[token.length - 1] == 'b';
+              final key =
+                  isLowerB ? token.substring(0, token.length - 1) : token;
+              if (_iecSymbols.containsKey(key)) {
+                final base = _iecSymbols[key]!;
+                multiplier = isLowerB ? base / 8 : base;
+                if (isLowerB) {
+                  isBits = true;
+                  normalizedToken = '${key}b'.toLowerCase();
+                } else {
+                  normalizedToken = key;
+                }
+                unit = null;
+                return true;
+              }
+              return false;
+          }
+        }
+
+        var matched = matchStandard(standard);
+        if (!matched) {
+          for (final fallback in ByteStandard.values) {
+            if (fallback == standard) continue;
+            if (matchStandard(fallback)) {
+              matched = true;
+              break;
             }
-            break;
+          }
+        }
+
+        if (!matched) {
+          throw FormatException('Unknown unit: $unitStrRaw');
         }
       }
     }
   }
 
   multiplier ??= 1;
-  final bytes = value * multiplier;
+  final resolvedMultiplier = multiplier!;
+  final bytes = value * resolvedMultiplier;
 
   final canonicalSymbol = () {
     if ((unitStrRaw.isEmpty || normalizedToken.isEmpty) && !isBits) {
@@ -752,72 +774,100 @@ RateParsingResult _parseRateLiteralInternal({
 
   final upper = u.toUpperCase();
 
-  double mult;
-  switch (standard) {
-    case ByteStandard.si:
-      const map = {
-        '': 1.0,
-        'K': 1e3,
-        'KB': 1e3,
-        'M': 1e6,
-        'MB': 1e6,
-        'G': 1e9,
-        'GB': 1e9,
-        'T': 1e12,
-        'TB': 1e12,
-        'P': 1e15,
-        'PB': 1e15,
-        'E': 1e18,
-        'EB': 1e18,
-        'Z': 1e21,
-        'ZB': 1e21,
-        'Y': 1e24,
-        'YB': 1e24,
-      };
-      if (!map.containsKey(upper)) {
-        throw FormatException('Unknown SI rate unit: $unitStr');
-      }
-      mult = map[upper]!;
-      break;
-    case ByteStandard.jedec:
-      const mapJ = {
-        'KB': 1024.0,
-        'MB': 1024.0 * 1024,
-        'GB': 1024.0 * 1024 * 1024,
-        'TB': 1024.0 * 1024 * 1024 * 1024,
-      };
-      if (!mapJ.containsKey(upper) && upper != '') {
-        throw FormatException('Unknown JEDEC rate unit: $unitStr');
-      }
-      mult = mapJ[upper] ?? 1.0;
-      break;
-    case ByteStandard.iec:
-      const mapI = {
-        'KI': 1024.0,
-        'KIB': 1024.0,
-        'MI': 1024.0 * 1024,
-        'MIB': 1024.0 * 1024,
-        'GI': 1024.0 * 1024 * 1024,
-        'GIB': 1024.0 * 1024 * 1024,
-        'TI': 1024.0 * 1024 * 1024 * 1024,
-        'TIB': 1024.0 * 1024 * 1024 * 1024,
-        'PI': 1024.0 * 1024 * 1024 * 1024 * 1024,
-        'PIB': 1024.0 * 1024 * 1024 * 1024 * 1024,
-        'EI': 1024.0 * 1024 * 1024 * 1024 * 1024 * 1024,
-        'EIB': 1024.0 * 1024 * 1024 * 1024 * 1024 * 1024,
-        'ZI': 1024.0 * 1024 * 1024 * 1024 * 1024 * 1024 * 1024,
-        'ZIB': 1024.0 * 1024 * 1024 * 1024 * 1024 * 1024 * 1024,
-        'YI': 1024.0 * 1024 * 1024 * 1024 * 1024 * 1024 * 1024 * 1024,
-        'YIB': 1024.0 * 1024 * 1024 * 1024 * 1024 * 1024 * 1024 * 1024,
-      };
-      if (!mapI.containsKey(upper)) {
-        throw FormatException('Unknown IEC rate unit: $unitStr');
-      }
-      mult = mapI[upper]!;
-      break;
+  double? mult;
+
+  bool matchStandard(ByteStandard std) {
+    switch (std) {
+      case ByteStandard.si:
+        const map = {
+          '': 1.0,
+          'K': 1e3,
+          'KB': 1e3,
+          'M': 1e6,
+          'MB': 1e6,
+          'G': 1e9,
+          'GB': 1e9,
+          'T': 1e12,
+          'TB': 1e12,
+          'P': 1e15,
+          'PB': 1e15,
+          'E': 1e18,
+          'EB': 1e18,
+          'Z': 1e21,
+          'ZB': 1e21,
+          'Y': 1e24,
+          'YB': 1e24,
+        };
+        final base = map[upper];
+        if (base == null) {
+          return false;
+        }
+        mult = base;
+        return true;
+      case ByteStandard.jedec:
+        const mapJ = {
+          'KB': 1024.0,
+          'MB': 1024.0 * 1024,
+          'GB': 1024.0 * 1024 * 1024,
+          'TB': 1024.0 * 1024 * 1024 * 1024,
+        };
+        if (upper.isEmpty) {
+          mult = 1.0;
+          return true;
+        }
+        final base = mapJ[upper];
+        if (base == null) {
+          return false;
+        }
+        mult = base;
+        return true;
+      case ByteStandard.iec:
+        const mapI = {
+          'KI': 1024.0,
+          'KIB': 1024.0,
+          'MI': 1024.0 * 1024,
+          'MIB': 1024.0 * 1024,
+          'GI': 1024.0 * 1024 * 1024,
+          'GIB': 1024.0 * 1024 * 1024,
+          'TI': 1024.0 * 1024 * 1024 * 1024,
+          'TIB': 1024.0 * 1024 * 1024 * 1024,
+          'PI': 1024.0 * 1024 * 1024 * 1024 * 1024,
+          'PIB': 1024.0 * 1024 * 1024 * 1024 * 1024,
+          'EI': 1024.0 * 1024 * 1024 * 1024 * 1024 * 1024,
+          'EIB': 1024.0 * 1024 * 1024 * 1024 * 1024 * 1024,
+          'ZI': 1024.0 * 1024 * 1024 * 1024 * 1024 * 1024 * 1024,
+          'ZIB': 1024.0 * 1024 * 1024 * 1024 * 1024 * 1024 * 1024,
+          'YI': 1024.0 * 1024 * 1024 * 1024 * 1024 * 1024 * 1024 * 1024,
+          'YIB': 1024.0 * 1024 * 1024 * 1024 * 1024 * 1024 * 1024 * 1024,
+        };
+        final base = mapI[upper];
+        if (base == null) {
+          return false;
+        }
+        mult = base;
+        return true;
+    }
   }
 
-  final bytesPerSecond = isBits ? (v * mult) / 8.0 : (v * mult);
+  var matched = matchStandard(standard);
+  if (!matched) {
+    for (final fallback in ByteStandard.values) {
+      if (fallback == standard) continue;
+      if (matchStandard(fallback)) {
+        matched = true;
+        break;
+      }
+    }
+  }
+
+  if (!matched) {
+    throw FormatException('Unknown rate unit: $unitStr');
+  }
+
+  final resolvedMultiplier = mult!;
+
+  final bytesPerSecond =
+      isBits ? (v * resolvedMultiplier) / 8.0 : (v * resolvedMultiplier);
   final bps = bytesPerSecond * 8.0;
   final canonicalSymbol = isBits
       ? _canonicalizeBitSymbol(
@@ -878,9 +928,9 @@ ByteParsingResult<BigSizeUnit> _parseSizeBigLiteralInternal({
   final value = double.parse(numStr);
 
   var isBits = false;
-  double multiplier;
+  double? multiplier;
   BigSizeUnit? unit;
-  String unitSymbol;
+  String? unitSymbol;
 
   if (unitStr.isEmpty) {
     multiplier = 1;
@@ -995,113 +1045,136 @@ ByteParsingResult<BigSizeUnit> _parseSizeBigLiteralInternal({
       unit = BigSizeUnit.B;
       unitSymbol = 'B';
     } else {
-      switch (standard) {
-        case ByteStandard.si:
-          final upperNoB =
-              isLowerB ? upper.substring(0, upper.length - 1) : upper;
-          const map = {
-            'YB': 1e24,
-            'ZB': 1e21,
-            'EB': 1e18,
-            'PB': 1e15,
-            'TB': 1e12,
-            'GB': 1e9,
-            'MB': 1e6,
-            'KB': 1e3,
-            'B': 1.0,
-          };
-          const unitMap = {
-            'YB': BigSizeUnit.YB,
-            'ZB': BigSizeUnit.ZB,
-            'EB': BigSizeUnit.EB,
-            'PB': BigSizeUnit.PB,
-            'TB': BigSizeUnit.TB,
-            'GB': BigSizeUnit.GB,
-            'MB': BigSizeUnit.MB,
-            'KB': BigSizeUnit.KB,
-            'B': BigSizeUnit.B,
-          };
-          if (!map.containsKey(upperNoB)) {
-            throw FormatException('Unknown SI unit: $unitStr');
+      bool matchStandard(ByteStandard std) {
+        switch (std) {
+          case ByteStandard.si:
+            final upperNoB =
+                isLowerB ? upper.substring(0, upper.length - 1) : upper;
+            const map = {
+              'YB': 1e24,
+              'ZB': 1e21,
+              'EB': 1e18,
+              'PB': 1e15,
+              'TB': 1e12,
+              'GB': 1e9,
+              'MB': 1e6,
+              'KB': 1e3,
+              'B': 1.0,
+            };
+            const unitMap = {
+              'YB': BigSizeUnit.YB,
+              'ZB': BigSizeUnit.ZB,
+              'EB': BigSizeUnit.EB,
+              'PB': BigSizeUnit.PB,
+              'TB': BigSizeUnit.TB,
+              'GB': BigSizeUnit.GB,
+              'MB': BigSizeUnit.MB,
+              'KB': BigSizeUnit.KB,
+              'B': BigSizeUnit.B,
+            };
+            final base = map[upperNoB];
+            if (base == null) {
+              return false;
+            }
+            multiplier = isLowerB ? base / 8 : base;
+            unit = unitMap[upperNoB];
+            unitSymbol = isLowerB
+                ? _canonicalizeBitSymbol(u)
+                : _canonicalizeByteSymbol(upperNoB);
+            return true;
+          case ByteStandard.jedec:
+            final key = isLowerB ? upper.substring(0, upper.length - 1) : upper;
+            const mapJ = {
+              'TB': 1024.0 * 1024 * 1024 * 1024,
+              'GB': 1024.0 * 1024 * 1024,
+              'MB': 1024.0 * 1024,
+              'KB': 1024.0,
+              'B': 1.0,
+            };
+            final base = mapJ[key];
+            if (base == null) {
+              return false;
+            }
+            multiplier = isLowerB ? base / 8 : base;
+            unitSymbol = isLowerB
+                ? _canonicalizeBitSymbol('${key.toLowerCase()}b')
+                : _canonicalizeByteSymbol(key);
+            unit = {
+              'TB': BigSizeUnit.TB,
+              'GB': BigSizeUnit.GB,
+              'MB': BigSizeUnit.MB,
+              'KB': BigSizeUnit.KB,
+              'B': BigSizeUnit.B,
+            }[key];
+            return true;
+          case ByteStandard.iec:
+            final keyIec = isLowerB ? u.substring(0, u.length - 1) : u;
+            const mapI = {
+              'YiB': 1024.0 * 1024 * 1024 * 1024 * 1024 * 1024 * 1024 * 1024,
+              'ZiB': 1024.0 * 1024 * 1024 * 1024 * 1024 * 1024 * 1024,
+              'EiB': 1024.0 * 1024 * 1024 * 1024 * 1024 * 1024,
+              'PiB': 1024.0 * 1024 * 1024 * 1024 * 1024,
+              'TiB': 1024.0 * 1024 * 1024 * 1024,
+              'GiB': 1024.0 * 1024 * 1024,
+              'MiB': 1024.0 * 1024,
+              'KiB': 1024.0,
+              'B': 1.0,
+            };
+            const unitMapI = {
+              'YiB': BigSizeUnit.YB,
+              'ZiB': BigSizeUnit.ZB,
+              'EiB': BigSizeUnit.EB,
+              'PiB': BigSizeUnit.PB,
+              'TiB': BigSizeUnit.TB,
+              'GiB': BigSizeUnit.GB,
+              'MiB': BigSizeUnit.MB,
+              'KiB': BigSizeUnit.KB,
+              'B': BigSizeUnit.B,
+            };
+            final base = mapI[keyIec];
+            if (base == null) {
+              return false;
+            }
+            multiplier = isLowerB ? base / 8 : base;
+            unitSymbol = isLowerB
+                ? _canonicalizeBitSymbol('${keyIec.toLowerCase()}b')
+                : _canonicalizeByteSymbol(keyIec);
+            unit = unitMapI[keyIec];
+            return true;
+        }
+      }
+
+      var matched = matchStandard(standard);
+      if (!matched) {
+        for (final fallback in ByteStandard.values) {
+          if (fallback == standard) continue;
+          if (matchStandard(fallback)) {
+            matched = true;
+            break;
           }
-          multiplier = map[upperNoB]!;
-          unit = unitMap[upperNoB];
-          if (isLowerB) {
-            multiplier /= 8;
-            unitSymbol = _canonicalizeBitSymbol(u);
-          } else {
-            unitSymbol = _canonicalizeByteSymbol(upperNoB);
-          }
-          break;
-        case ByteStandard.jedec:
-          final key = isLowerB ? upper.substring(0, upper.length - 1) : upper;
-          const mapJ = {
-            'TB': 1024.0 * 1024 * 1024 * 1024,
-            'GB': 1024.0 * 1024 * 1024,
-            'MB': 1024.0 * 1024,
-            'KB': 1024.0,
-            'B': 1.0,
-          };
-          multiplier = mapJ[key] ?? 1.0;
-          if (isLowerB) {
-            multiplier /= 8;
-            unitSymbol = _canonicalizeBitSymbol('${key.toLowerCase()}b');
-          } else {
-            unitSymbol = _canonicalizeByteSymbol(key);
-          }
-          unit = {
-            'TB': BigSizeUnit.TB,
-            'GB': BigSizeUnit.GB,
-            'MB': BigSizeUnit.MB,
-            'KB': BigSizeUnit.KB,
-            'B': BigSizeUnit.B,
-          }[key];
-          break;
-        case ByteStandard.iec:
-          final keyIec = isLowerB ? u.substring(0, u.length - 1) : u;
-          const mapI = {
-            'YiB': 1024.0 * 1024 * 1024 * 1024 * 1024 * 1024 * 1024 * 1024,
-            'ZiB': 1024.0 * 1024 * 1024 * 1024 * 1024 * 1024 * 1024,
-            'EiB': 1024.0 * 1024 * 1024 * 1024 * 1024 * 1024,
-            'PiB': 1024.0 * 1024 * 1024 * 1024 * 1024,
-            'TiB': 1024.0 * 1024 * 1024 * 1024,
-            'GiB': 1024.0 * 1024 * 1024,
-            'MiB': 1024.0 * 1024,
-            'KiB': 1024.0,
-            'B': 1.0,
-          };
-          const unitMapI = {
-            'YiB': BigSizeUnit.YB,
-            'ZiB': BigSizeUnit.ZB,
-            'EiB': BigSizeUnit.EB,
-            'PiB': BigSizeUnit.PB,
-            'TiB': BigSizeUnit.TB,
-            'GiB': BigSizeUnit.GB,
-            'MiB': BigSizeUnit.MB,
-            'KiB': BigSizeUnit.KB,
-            'B': BigSizeUnit.B,
-          };
-          multiplier = mapI[keyIec] ?? 1.0;
-          if (isLowerB) {
-            multiplier /= 8;
-            unitSymbol = _canonicalizeBitSymbol('${keyIec.toLowerCase()}b');
-          } else {
-            unitSymbol = _canonicalizeByteSymbol(keyIec);
-          }
-          unit = unitMapI[keyIec];
-          break;
+        }
+      }
+
+      if (!matched) {
+        throw FormatException('Unknown unit: $unitStr');
       }
     }
   }
 
-  final bytes = value * multiplier;
-  final normalized = _composeNormalizedInput(numStr, unitSymbol);
+  multiplier ??= 1;
+  unit ??= BigSizeUnit.B;
+  unitSymbol ??= isBits ? 'b' : 'B';
+
+  final resolvedMultiplier = multiplier!;
+  final resolvedUnitSymbol = unitSymbol!;
+  final bytes = value * resolvedMultiplier;
+  final normalized = _composeNormalizedInput(numStr, resolvedUnitSymbol);
   return ByteParsingResult<BigSizeUnit>(
     valueInBytes: bytes,
     unit: unit,
     isBitInput: isBits,
     normalizedInput: normalized,
-    unitSymbol: unitSymbol,
+    unitSymbol: resolvedUnitSymbol,
     rawValue: value,
   );
 }

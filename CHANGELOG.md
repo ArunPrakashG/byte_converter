@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.3.1
+
+### Fixed
+
+- Size and data-rate parsing now fall back across SI, IEC, and JEDEC symbols so expression evaluation accepts mixed-unit inputs regardless of the selected standard.
+
 ## 2.3.0
 
 ### Added / Improved
@@ -10,6 +16,7 @@
 - Composite expression parsing for sizes and rates, including arithmetic operators, parentheses, and duration tokens.
 - `FormatterSnapshot` utilities for generating Markdown/CSV matrices reused in documentation and snapshot tests.
 - `BigDataRate` for BigInt-precise throughput conversions that interoperate with `DataRate`.
+- Built-in localized unit names now include Hindi (hi/hi_IN), Spanish (es), Portuguese (pt), Japanese (ja), Chinese (zh), Russian (ru), and English (en_IN) alongside the existing English, German, and French defaults.
 - Locale-aware humanize formatting via new `ByteFormatOptions.locale` and `useGrouping` controls, powered by `intl`.
 - Shared humanize pipeline now caches `NumberFormat` instances and gracefully falls back to legacy formatting if locale data is missing.
 - Added regression tests covering localized output and grouping toggles for sizes and rates.

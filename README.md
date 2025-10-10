@@ -13,14 +13,14 @@ Fast, dependable byte and data-rate conversions for Dart with fluent APIs and op
 - 🕒 Transfer planning helpers that surface ETAs, progress, and burst windows in a single call
 - 📦 Storage profiles with configurable alignment, slack inspection, and round-to-profile helpers
 - 📊 Aggregate metrics through `ByteStats`/`BigByteStats` for sums, averages, percentiles, and histograms
-- 🌍 Localization-ready humanize output with custom format options and optional `intl` integration
+- 🌍 Localization-ready humanize output with custom format options, optional `intl` integration, and built-in unit names for English (including en_IN), German, French, Hindi, Spanish, Portuguese, Japanese, Chinese, and Russian
 - 🧾 FormatterSnapshot generators that keep README/wiki matrices and snapshot tests in sync
 
 ## 📦 Installation
 
 ```yaml
 dependencies:
-  byte_converter: ^2.3.0
+  byte_converter: ^2.3.1
 ```
 
 ## 💡 Quick Example
@@ -74,6 +74,7 @@ The complete guide lives in the wiki:
 ## 🔌 Optional Add-ons
 
 - `byte_converter_intl.dart` opt-in delivers locale-aware number formatting and localized unit names
+- Built-in localized vocabulary now spans English (including en_IN), German, French, Hindi (hi/hi_IN), Spanish (es), Portuguese (pt), Japanese (ja), Chinese (zh), and Russian (ru)
 - FormatterSnapshot helpers keep README tables, wiki docs, and snapshot tests aligned
 - Wiki recipes cover CLI usage, monitoring dashboards, and BigInt-heavy workloads
 
