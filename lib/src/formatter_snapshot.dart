@@ -5,7 +5,11 @@ import 'format_options.dart';
 enum _SnapshotKind { size, rate }
 
 /// Utility for generating snapshot matrices of formatted byte sizes or data rates.
+///
+/// Useful for documentation tables, CSV exports, and snapshot tests that
+/// assert formatting stability across option combinations.
 class FormatterSnapshot {
+  /// Builds a snapshot for size samples (in raw bytes as doubles).
   FormatterSnapshot.size({
     required Iterable<double> sizeSamples,
     required Iterable<ByteFormatOptions> options,
@@ -19,6 +23,7 @@ class FormatterSnapshot {
         _rateLabeler = _defaultRateLabeler,
         _optionLabeler = optionLabeler ?? _defaultOptionLabeler;
 
+  /// Builds a snapshot for [DataRate] samples.
   FormatterSnapshot.rate({
     required Iterable<DataRate> rateSamples,
     required Iterable<ByteFormatOptions> options,
@@ -40,8 +45,10 @@ class FormatterSnapshot {
   final String Function(DataRate sample) _rateLabeler;
   final String Function(ByteFormatOptions option) _optionLabeler;
 
+  /// Returns the matrix as an immutable list of rows: [sample, option, formatted].
   List<List<String>> buildMatrix() => List<List<String>>.unmodifiable(_matrix);
 
+  /// Renders the matrix as a Markdown table.
   String toMarkdownTable({bool includeHeader = true}) {
     final rows = _matrix;
     final buffer = StringBuffer();
@@ -55,6 +62,7 @@ class FormatterSnapshot {
     return buffer.toString().trim();
   }
 
+  /// Renders the matrix as CSV text.
   String toCsv({String delimiter = ',', bool includeHeader = true}) {
     final rows = _matrix;
     final buffer = StringBuffer();

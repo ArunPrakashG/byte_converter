@@ -10,8 +10,12 @@ import 'localized_unit_names.dart' show localizedUnitName;
 import 'parse_result.dart';
 import 'storage_profile.dart';
 
-/// High-performance byte unit converter using BigInt for arbitrary precision
+/// High-performance byte unit converter using BigInt for arbitrary precision.
+///
+/// Suitable for extremely large sizes without precision loss. Mirrors most of
+/// [ByteConverter]'s surface with BigInt-backed storage and exact arithmetic.
 class BigByteConverter implements Comparable<BigByteConverter> {
+  /// Creates a converter from a [bytes] BigInt value.
   BigByteConverter(BigInt bytes) : this._(bytes, bytes * BigInt.from(8));
 
   // Private constructor
@@ -19,29 +23,60 @@ class BigByteConverter implements Comparable<BigByteConverter> {
     if (_bytes.isNegative) throw ArgumentError('Bytes cannot be negative');
   }
 
+  /// Creates a converter from [bits] (BigInt).
   factory BigByteConverter.withBits(BigInt bits) {
     if (bits.isNegative) throw ArgumentError('Bits cannot be negative');
     return BigByteConverter._(bits ~/ BigInt.from(8), bits);
   }
 
   // Named constructors for decimal units
+  /// Creates from kilobytes (SI, 1000^1) as BigInt.
   BigByteConverter.fromKiloBytes(BigInt value) : this(value * _KB);
+
+  /// Creates from megabytes (SI, 1000^2) as BigInt.
   BigByteConverter.fromMegaBytes(BigInt value) : this(value * _MB);
+
+  /// Creates from gigabytes (SI, 1000^3) as BigInt.
   BigByteConverter.fromGigaBytes(BigInt value) : this(value * _GB);
+
+  /// Creates from terabytes (SI, 1000^4) as BigInt.
   BigByteConverter.fromTeraBytes(BigInt value) : this(value * _TB);
+
+  /// Creates from petabytes (SI, 1000^5) as BigInt.
   BigByteConverter.fromPetaBytes(BigInt value) : this(value * _PB);
+
+  /// Creates from exabytes (SI, 1000^6) as BigInt.
   BigByteConverter.fromExaBytes(BigInt value) : this(value * _EB);
+
+  /// Creates from zettabytes (SI, 1000^7) as BigInt.
   BigByteConverter.fromZettaBytes(BigInt value) : this(value * _ZB);
+
+  /// Creates from yottabytes (SI, 1000^8) as BigInt.
   BigByteConverter.fromYottaBytes(BigInt value) : this(value * _YB);
 
   // Named constructors for binary units
+  /// Creates from kibibytes (IEC, 1024^1) as BigInt.
   BigByteConverter.fromKibiBytes(BigInt value) : this(value * _KIB);
+
+  /// Creates from mebibytes (IEC, 1024^2) as BigInt.
   BigByteConverter.fromMebiBytes(BigInt value) : this(value * _MIB);
+
+  /// Creates from gibibytes (IEC, 1024^3) as BigInt.
   BigByteConverter.fromGibiBytes(BigInt value) : this(value * _GIB);
+
+  /// Creates from tebibytes (IEC, 1024^4) as BigInt.
   BigByteConverter.fromTebiBytes(BigInt value) : this(value * _TIB);
+
+  /// Creates from pebibytes (IEC, 1024^5) as BigInt.
   BigByteConverter.fromPebiBytes(BigInt value) : this(value * _PIB);
+
+  /// Creates from exbibytes (IEC, 1024^6) as BigInt.
   BigByteConverter.fromExbiBytes(BigInt value) : this(value * _EIB);
+
+  /// Creates from zebibytes (IEC, 1024^7) as BigInt.
   BigByteConverter.fromZebiBytes(BigInt value) : this(value * _ZIB);
+
+  /// Creates from yobibytes (IEC, 1024^8) as BigInt.
   BigByteConverter.fromYobiBytes(BigInt value) : this(value * _YIB);
 
   // Factory constructor for JSON deserialization
@@ -87,9 +122,16 @@ class BigByteConverter implements Comparable<BigByteConverter> {
   final BigInt _bits;
 
   // Storage units
+  /// Number of sectors (512 B) rounding up.
   BigInt get sectors => (_bytes + _SECTOR_SIZE - BigInt.one) ~/ _SECTOR_SIZE;
+
+  /// Number of blocks (4096 B) rounding up.
   BigInt get blocks => (_bytes + _BLOCK_SIZE - BigInt.one) ~/ _BLOCK_SIZE;
+
+  /// Number of pages (4096 B) rounding up.
   BigInt get pages => (_bytes + _PAGE_SIZE - BigInt.one) ~/ _PAGE_SIZE;
+
+  /// Number of 64-bit words (8 B) rounding up.
   BigInt get words => (_bytes + _WORD_SIZE - BigInt.one) ~/ _WORD_SIZE;
 
   // Network rates - return double for practical use
@@ -99,10 +141,12 @@ class BigByteConverter implements Comparable<BigByteConverter> {
   double get gigaBitsPerSecond => megaBitsPerSecond / 1000;
 
   // Time-based methods
+  /// Estimated duration to transfer this payload at [bitsPerSecond].
   Duration transferTimeAt(double bitsPerSecond) => Duration(
         microseconds: (_bits.toDouble() / bitsPerSecond * 1000000).ceil(),
       );
 
+  /// Estimated duration to download this payload at [bytesPerSecond].
   Duration downloadTimeAt(double bytesPerSecond) => Duration(
         microseconds: (_bytes.toDouble() / bytesPerSecond * 1000000).ceil(),
       );
@@ -114,8 +158,13 @@ class BigByteConverter implements Comparable<BigByteConverter> {
   bool get isWholeWord => _bytes % _WORD_SIZE == BigInt.zero;
 
   // Unit getters - return double for practical calculations
+  /// Exact bytes as BigInt.
   BigInt get asBytes => _bytes;
+
+  /// Exact bits as BigInt.
   BigInt get bits => _bits;
+
+  /// Exact bytes as BigInt (alias of [asBytes]).
   BigInt get bytes => _bytes;
 
   // Decimal unit getters

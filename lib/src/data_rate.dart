@@ -7,45 +7,73 @@ import 'parse_result.dart';
 // ignore_for_file: prefer_constructors_over_static_methods
 
 /// Represents a network/data rate. Internally stored as bits per second.
+///
+/// Provides human-readable formatting (including time base selection),
+/// parsing from common strings, and convenience constructors for SI/IEC units.
 class DataRate implements Comparable<DataRate> {
+  /// Constructs a rate in bits per second.
   const DataRate.bitsPerSecond(this._bitsPerSecond)
       : assert(_bitsPerSecond >= 0, 'Rate cannot be negative');
 
+  /// Constructs a rate given [bytesPerSecond].
   factory DataRate.bytesPerSecond(double bytesPerSecond) =>
       DataRate.bitsPerSecond(bytesPerSecond * 8.0);
 
   // Named constructors (SI)
+  /// SI: kilobits per second.
   factory DataRate.kiloBitsPerSecond(double value) =>
       DataRate.bitsPerSecond(value * 1000);
+
+  /// SI: megabits per second.
   factory DataRate.megaBitsPerSecond(double value) =>
       DataRate.bitsPerSecond(value * 1000 * 1000);
+
+  /// SI: gigabits per second.
   factory DataRate.gigaBitsPerSecond(double value) =>
       DataRate.bitsPerSecond(value * 1000 * 1000 * 1000);
 
+  /// SI: kilobytes per second.
   factory DataRate.kiloBytesPerSecond(double value) =>
       DataRate.bytesPerSecond(value * 1000);
+
+  /// SI: megabytes per second.
   factory DataRate.megaBytesPerSecond(double value) =>
       DataRate.bytesPerSecond(value * 1000 * 1000);
+
+  /// SI: gigabytes per second.
   factory DataRate.gigaBytesPerSecond(double value) =>
       DataRate.bytesPerSecond(value * 1000 * 1000 * 1000);
 
   // Named constructors (IEC)
+  /// IEC: kibibits per second.
   factory DataRate.kibiBitsPerSecond(double value) =>
       DataRate.bitsPerSecond(value * 1024);
+
+  /// IEC: mebibits per second.
   factory DataRate.mebiBitsPerSecond(double value) =>
       DataRate.bitsPerSecond(value * 1024 * 1024);
+
+  /// IEC: gibibits per second.
   factory DataRate.gibiBitsPerSecond(double value) =>
       DataRate.bitsPerSecond(value * 1024 * 1024 * 1024);
 
+  /// IEC: kibibytes per second.
   factory DataRate.kibiBytesPerSecond(double value) =>
       DataRate.bytesPerSecond(value * 1024);
+
+  /// IEC: mebibytes per second.
   factory DataRate.mebiBytesPerSecond(double value) =>
       DataRate.bytesPerSecond(value * 1024 * 1024);
+
+  /// IEC: gibibytes per second.
   factory DataRate.gibiBytesPerSecond(double value) =>
       DataRate.bytesPerSecond(value * 1024 * 1024 * 1024);
   final double _bitsPerSecond;
 
+  /// Bits per second.
   double get bitsPerSecond => _bitsPerSecond;
+
+  /// Bytes per second.
   double get bytesPerSecond => _bitsPerSecond / 8.0;
 
   // Time base for formatting
@@ -62,12 +90,18 @@ class DataRate implements Comparable<DataRate> {
     return '/s';
   }
 
+  /// Duration to transfer [bytes] at this data rate.
   Duration transferTimeForBytes(double bytes) {
     if (_bitsPerSecond == 0) return Duration.zero;
     final seconds = (bytes * 8.0) / _bitsPerSecond;
     return Duration(microseconds: (seconds * 1e6).ceil());
   }
 
+  /// Formats this data rate using humanized units.
+  ///
+  /// Supports SI/IEC/JEDEC [standard], bits/bytes via [useBytes], locale and
+  /// grouping options, min/max fraction digits with optional [truncate], and
+  /// [per] time-base selection: 's' (default), 'ms', 'min', or 'h'.
   String toHumanReadableAuto({
     ByteStandard standard = ByteStandard.si,
     bool useBytes = false,
@@ -130,7 +164,7 @@ class DataRate implements Comparable<DataRate> {
     return '$formatted${_perSuffix(perSeconds)}';
   }
 
-  /// Convenience overload using ByteFormatOptions.
+  /// Convenience overload using [ByteFormatOptions].
   String toHumanReadableAutoWith(ByteFormatOptions options) =>
       toHumanReadableAuto(
         standard: options.standard,
@@ -164,6 +198,7 @@ class DataRate implements Comparable<DataRate> {
     return '$text${_perSuffix(perSeconds)}';
   }
 
+  /// Parses a string like "100 Mb/s", "12.5 MB/s", or "2 kibps" to a DataRate.
   static DataRate parse(
     String input, {
     ByteStandard standard = ByteStandard.si,
@@ -172,7 +207,7 @@ class DataRate implements Comparable<DataRate> {
     return DataRate.bitsPerSecond(r.bitsPerSecond);
   }
 
-  /// Safe parsing variant that returns diagnostics instead of throwing exceptions.
+  /// Safe parsing variant that returns diagnostics instead of throwing.
   static ParseResult<DataRate> tryParse(
     String input, {
     ByteStandard standard = ByteStandard.si,

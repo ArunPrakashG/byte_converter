@@ -37,5 +37,21 @@ void main() {
       );
       expect(text, endsWith('/s'));
     });
+
+    test('Grouping applies for large IEC counts', () {
+      // Construct 1 GiB + 1023 MiB to force a 4-digit MiB part
+      final size =
+          ByteConverter.fromGibiBytes(1) + ByteConverter.fromMebiBytes(1023);
+      final text = size.toHumanReadableCompound(
+        options: const CompoundFormatOptions(
+          standard: ByteStandard.iec,
+          locale: 'en',
+          useGrouping: true,
+          maxParts: 2,
+        ),
+      );
+      // Expect the MiB component to be grouped as 1,023 MiB in en locale
+      expect(text, contains('1,023 MiB'));
+    });
   });
 }

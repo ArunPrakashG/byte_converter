@@ -1,6 +1,7 @@
 import 'byte_converter_base.dart';
 import 'data_rate.dart';
 
+/// Simple transfer planning model for estimating ETAs and progress.
 class TransferPlan {
   TransferPlan({
     required this.totalBytes,
@@ -17,7 +18,10 @@ class TransferPlan {
     }
   }
 
+  /// Total payload to be transferred.
   final ByteConverter totalBytes;
+
+  /// Nominal transfer rate.
   final DataRate rate;
   final ByteConverter? _transferredBytes;
   final Duration? _elapsed;
@@ -27,6 +31,7 @@ class TransferPlan {
   // Variable schedule support
   final List<RateWindow> _schedule = [];
 
+  /// Bytes transferred so far; either provided or derived from [elapsed].
   ByteConverter get transferredBytes {
     final existing = _transferredBytes;
     if (existing != null) {
@@ -41,6 +46,7 @@ class TransferPlan {
     return _clampToTotal(ByteConverter(bytes));
   }
 
+  /// Elapsed time; either provided or derived from [transferredBytes].
   Duration get elapsed {
     final existing = _elapsed;
     if (existing != null) return existing;
@@ -52,19 +58,23 @@ class TransferPlan {
     return Duration(microseconds: (seconds * 1e6).round());
   }
 
+  /// Progress as a fraction in [0,1].
   double get progressFraction {
     final total = totalBytes.bytes;
     if (total <= 0) return 1;
     return (transferredBytes.bytes / total).clamp(0.0, 1.0);
   }
 
+  /// Progress as percent in [0,100].
   double get percentComplete => progressFraction * 100;
 
+  /// Remaining bytes to transfer (never negative).
   ByteConverter get remainingBytes {
     final remaining = totalBytes.bytes - transferredBytes.bytes;
     return remaining <= 0 ? ByteConverter(0) : ByteConverter(remaining);
   }
 
+  /// Estimated total duration at the effective rate (may be null if paused/zero rate).
   Duration? get estimatedTotalDuration {
     final bps = _effectiveBitsPerSecond();
     if (bps == 0) return null;
@@ -72,6 +82,7 @@ class TransferPlan {
     return Duration(microseconds: (totalSeconds * 1e6).round());
   }
 
+  /// Estimated remaining duration (may be null if paused/zero rate).
   Duration? get remainingDuration {
     final bps = _effectiveBitsPerSecond();
     if (bps == 0) return null;
@@ -79,6 +90,7 @@ class TransferPlan {
     return Duration(microseconds: (remainingSeconds * 1e6).ceil());
   }
 
+  /// Humanized ETA string. Returns [pending] if unknown, [done] if complete.
   String etaString({String pending = 'pending', String done = 'done'}) {
     final remaining = remainingDuration;
     if (remaining == null) return pending;
@@ -122,6 +134,7 @@ class TransferPlan {
   }
 }
 
+/// ByteConverter helpers for transfer planning.
 extension ByteConverterTransfer on ByteConverter {
   TransferPlan estimateTransfer(
     DataRate rate, {
@@ -137,6 +150,7 @@ extension ByteConverterTransfer on ByteConverter {
   }
 }
 
+/// DataRate helpers for planning.
 extension DataRatePlanning on DataRate {
   ByteConverter transferableBytes(Duration window) {
     final seconds = window.inMicroseconds / 1e6;
@@ -152,6 +166,7 @@ class RateWindow {
   final Duration duration; // duration > 0
 }
 
+/// Advanced controls: schedules, pause/resume, and throttling.
 extension TransferPlanAdvanced on TransferPlan {
   void addRateWindow(RateWindow window) {
     if (window.duration <= Duration.zero) {

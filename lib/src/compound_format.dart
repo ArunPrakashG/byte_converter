@@ -1,6 +1,34 @@
+import 'package:intl/intl.dart' show NumberFormat;
+
 import 'byte_enums.dart';
 import 'localized_unit_names.dart';
 
+/// Options controlling compound mixed-unit formatting, e.g. "1 GiB 234 MiB 12 KiB".
+///
+/// Compound formatting decomposes a total quantity (bytes or bits) into a
+/// sequence of integral unit-part pairs, from the largest applicable unit down
+/// to smaller units, up to [maxParts] parts. Values are always whole numbers
+/// per unit (no fractional parts).
+///
+/// Key behaviors:
+/// - [standard]: Choose SI (powers of 1000), IEC (powers of 1024), or JEDEC.
+/// - [useBits]: When true, the decomposition is performed in bits (symbols are
+///   lowercase), otherwise bytes (uppercase where applicable).
+/// - [maxParts]: Maximum number of parts to include (default 2).
+/// - [separator]: String between parts (default single space).
+/// - [spacer]: String between the integer value and the unit text (default space).
+/// - [zeroSuppress]: When true (default), leading zero-valued higher units are
+///   omitted; the first emitted part will always have a positive count unless
+///   [smallestUnit] forces inclusion.
+/// - [smallestUnit]: Stop decomposition at this unit (inclusive). If omitted,
+///   decomposition stops at the last non-zero remainder.
+/// - [fullForm]: When true, unit symbols are replaced with localized full
+///   names using [localizedUnitName] (bytes symbols remain uppercase, bits
+///   lowercase). Optional [fullForms] can override per-name text.
+/// - [locale] and [useGrouping]: If [useGrouping] is true, integer values may
+///   be formatted using locale-aware thousands separators. This mainly affects
+///   IEC where unit counts can reach 1,023. SI counts are in 0..999 by
+///   construction and typically do not display grouping.
 class CompoundFormatOptions {
   const CompoundFormatOptions({
     this.standard = ByteStandard.iec,
@@ -47,7 +75,7 @@ String _pluralize(String symbol, double value, bool bits,
   }
 }
 
-/// Break a byte count (or bit count) into compound parts according to the chosen standard.
+/// Break a byte count (or bit count) into compound parts according to the chosen [CompoundFormatOptions.standard].
 /// Returns parts as pairs (value, symbol) from largest to smallest.
 List<(double, String)> _decompose(double quantity, CompoundFormatOptions opt) {
   // Build unit tables based on standard & useBits
@@ -158,11 +186,20 @@ List<(double, String)> _decompose(double quantity, CompoundFormatOptions opt) {
   return parts;
 }
 
+/// Formats a byte quantity (in bytes) to a compound mixed-unit string.
+///
+/// The [opt.useBits] flag toggles bit-based output (lowercase symbols). Unit
+/// labels can be localized via [CompoundFormatOptions.fullForm] and
+/// [CompoundFormatOptions.fullForms]. When [CompoundFormatOptions.useGrouping]
+/// is true, integer values >= 1000 will be grouped using the specified
+/// [CompoundFormatOptions.locale] (if provided) or the default locale.
 String formatCompound(double bytes, CompoundFormatOptions opt) {
   final quantity = opt.useBits ? (bytes * 8.0) : bytes;
   final parts = _decompose(quantity, opt);
   final locale = opt.locale;
   final fullForms = opt.fullForms;
+  final numberFormat =
+      opt.useGrouping ? NumberFormat.decimalPattern(locale) : null;
   final unitTexts = parts.map((p) {
     final value = p.$1;
     final sym = p.$2;
@@ -170,7 +207,8 @@ String formatCompound(double bytes, CompoundFormatOptions opt) {
         ? _pluralize(sym, value, opt.useBits,
             locale: locale, overrides: fullForms)
         : sym;
-    final numStr = value.toStringAsFixed(0);
+    final numStr =
+        numberFormat?.format(value.toInt()) ?? value.toStringAsFixed(0);
     return '$numStr${opt.spacer}$name';
   }).toList();
   return unitTexts.join(opt.separator);

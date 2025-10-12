@@ -2,6 +2,7 @@ import 'big_byte_converter.dart';
 import 'byte_converter_base.dart';
 import 'tdigest.dart';
 
+/// A single histogram bucket with an optional [upperBound] and [count].
 class HistogramBucket {
   const HistogramBucket({required this.count, this.upperBound});
 
@@ -9,6 +10,7 @@ class HistogramBucket {
   final int count;
 }
 
+/// A collection of histogram buckets.
 class Histogram {
   const Histogram(this.buckets);
 
@@ -17,7 +19,9 @@ class Histogram {
   int get totalCount => buckets.fold<int>(0, (sum, bin) => sum + bin.count);
 }
 
+/// Numeric aggregations over mixed byte-like inputs (double, int, BigInt, converters).
 class ByteStats {
+  /// Sum of values treated as bytes.
   static double sum(Iterable<Object?> values) {
     var total = 0.0;
     for (final value in values) {
@@ -26,6 +30,7 @@ class ByteStats {
     return total;
   }
 
+  /// Arithmetic mean of values treated as bytes.
   static double average(Iterable<Object?> values) {
     var count = 0;
     var total = 0.0;
@@ -39,6 +44,7 @@ class ByteStats {
     return total / count;
   }
 
+  /// Percentile (0..100) using linear interpolation over sorted byte values.
   static double percentile(Iterable<Object?> values, double percentile) {
     if (percentile < 0 || percentile > 100) {
       throw ArgumentError('Percentile must be between 0 and 100 inclusive');
@@ -62,6 +68,7 @@ class ByteStats {
     return lowerValue + (upperValue - lowerValue) * weight;
   }
 
+  /// Builds a histogram with the provided [buckets] as upper bounds.
   static Histogram histogram(
     Iterable<Object?> values, {
     required List<double> buckets,
@@ -106,6 +113,7 @@ class ByteStats {
   }
 }
 
+/// A histogram bucket for BigInt magnitudes.
 class BigHistogramBucket {
   const BigHistogramBucket({required this.count, this.upperBound});
 
@@ -113,6 +121,7 @@ class BigHistogramBucket {
   final int count;
 }
 
+/// Histogram wrapper for BigInt buckets.
 class BigHistogram {
   const BigHistogram(this.buckets);
 
@@ -121,7 +130,9 @@ class BigHistogram {
   int get totalCount => buckets.fold<int>(0, (sum, bin) => sum + bin.count);
 }
 
+/// BigInt-backed aggregations for extremely large values without precision loss.
 class BigByteStats {
+  /// Sum of values treated as bytes, returned as BigInt.
   static BigInt sum(Iterable<Object?> values) {
     var total = BigInt.zero;
     for (final value in values) {
@@ -130,6 +141,7 @@ class BigByteStats {
     return total;
   }
 
+  /// Arithmetic mean (double) of values treated as bytes.
   static double average(Iterable<Object?> values) {
     var count = 0;
     var total = BigInt.zero;
@@ -143,6 +155,7 @@ class BigByteStats {
     return total.toDouble() / count;
   }
 
+  /// Percentile (0..100) over BigInt magnitudes using weighted approach.
   static double percentile(Iterable<Object?> values, double percentile) {
     if (percentile < 0 || percentile > 100) {
       throw ArgumentError('Percentile must be between 0 and 100 inclusive');
@@ -171,6 +184,7 @@ class BigByteStats {
     return sorted.last.toDouble();
   }
 
+  /// Builds a histogram for BigInt magnitudes with [buckets] as upper bounds.
   static BigHistogram histogram(
     Iterable<Object?> values, {
     required List<BigInt> buckets,

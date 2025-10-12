@@ -9,8 +9,15 @@ import 'parse_result.dart';
 import 'storage_profile.dart';
 // ignore_for_file: prefer_constructors_over_static_methods
 
-/// High-performance byte unit converter with caching
+/// High-performance byte unit converter with caching.
+///
+/// Represents a quantity of data stored as bytes (and equivalent bits),
+/// with helpers for arithmetic, alignment, parsing, and human-readable
+/// formatting across SI/IEC/JEDEC standards.
 class ByteConverter implements Comparable<ByteConverter> {
+  /// Creates a converter from a [bytes] value.
+  ///
+  /// Throws [ArgumentError] if [bytes] is negative.
   ByteConverter(double bytes) : this._(bytes, (bytes * 8.0).ceil());
 
   // Constructors
@@ -18,23 +25,44 @@ class ByteConverter implements Comparable<ByteConverter> {
     if (_bytes < 0) throw ArgumentError('Bytes cannot be negative');
   }
 
+  /// Creates a converter from [bits].
+  ///
+  /// Throws [ArgumentError] if [bits] is negative.
   factory ByteConverter.withBits(int bits) {
     if (bits < 0) throw ArgumentError('Bits cannot be negative');
     return ByteConverter._(bits / 8.0, bits);
   }
 
   // Named constructors for decimal units
+  /// Creates a converter from kilobytes (SI, 1000^1).
   ByteConverter.fromKiloBytes(double value) : this(value * _KB);
+
+  /// Creates a converter from megabytes (SI, 1000^2).
   ByteConverter.fromMegaBytes(double value) : this(value * _MB);
+
+  /// Creates a converter from gigabytes (SI, 1000^3).
   ByteConverter.fromGigaBytes(double value) : this(value * _GB);
+
+  /// Creates a converter from terabytes (SI, 1000^4).
   ByteConverter.fromTeraBytes(double value) : this(value * _TB);
+
+  /// Creates a converter from petabytes (SI, 1000^5).
   ByteConverter.fromPetaBytes(double value) : this(value * _PB);
 
   // Named constructors for binary units
+  /// Creates a converter from kibibytes (IEC, 1024^1).
   ByteConverter.fromKibiBytes(double value) : this(value * _KIB);
+
+  /// Creates a converter from mebibytes (IEC, 1024^2).
   ByteConverter.fromMebiBytes(double value) : this(value * _MIB);
+
+  /// Creates a converter from gibibytes (IEC, 1024^3).
   ByteConverter.fromGibiBytes(double value) : this(value * _GIB);
+
+  /// Creates a converter from tebibytes (IEC, 1024^4).
   ByteConverter.fromTebiBytes(double value) : this(value * _TIB);
+
+  /// Creates a converter from pebibytes (IEC, 1024^5).
   ByteConverter.fromPebiBytes(double value) : this(value * _PIB);
 
   factory ByteConverter.fromJson(Map<String, dynamic> json) {
@@ -61,9 +89,16 @@ class ByteConverter implements Comparable<ByteConverter> {
   static const _WORD_SIZE = 8.0; // 64-bit word
 
   // Storage units
+  /// Number of sectors (512 B) rounding up.
   int get sectors => (_bytes / _SECTOR_SIZE).ceil();
+
+  /// Number of blocks (4096 B) rounding up.
   int get blocks => (_bytes / _BLOCK_SIZE).ceil();
+
+  /// Number of pages (4096 B) rounding up.
   int get pages => (_bytes / _PAGE_SIZE).ceil();
+
+  /// Number of 64-bit words (8 B) rounding up.
   int get words => (_bytes / _WORD_SIZE).ceil();
 
   // Network rates
@@ -73,16 +108,25 @@ class ByteConverter implements Comparable<ByteConverter> {
   double get gigaBitsPerSecond => megaBitsPerSecond / 1000;
 
   // Time-based methods
+  /// Estimated duration to transfer this payload at [bitsPerSecond].
   Duration transferTimeAt(double bitsPerSecond) =>
       Duration(microseconds: (_bits / bitsPerSecond * 1000000).ceil());
 
+  /// Estimated duration to download this payload at [bytesPerSecond].
   Duration downloadTimeAt(double bytesPerSecond) =>
       Duration(microseconds: (_bytes / bytesPerSecond * 1000000).ceil());
 
   // Convenience getters
+  /// True if this value is an exact multiple of the sector size (512 B).
   bool get isWholeSector => _bytes % _SECTOR_SIZE == 0;
+
+  /// True if this value is an exact multiple of the block size (4096 B).
   bool get isWholeBlock => _bytes % _BLOCK_SIZE == 0;
+
+  /// True if this value is an exact multiple of the page size (4096 B).
   bool get isWholePage => _bytes % _PAGE_SIZE == 0;
+
+  /// True if this value is an exact multiple of 64-bit word size (8 B).
   bool get isWholeWord => _bytes % _WORD_SIZE == 0;
 
   // Cached unit strings
@@ -106,25 +150,43 @@ class ByteConverter implements Comparable<ByteConverter> {
   late final String _cachedString = _calculateString();
 
   // Optimized getters
+  /// Value in kilobytes (SI).
   double get kiloBytes => _kiloBytes;
+
+  /// Value in megabytes (SI).
   double get megaBytes => _megaBytes;
+
+  /// Value in gigabytes (SI).
   double get gigaBytes => _gigaBytes;
   double get teraBytes => _bytes / _TB;
   double get petaBytes => _bytes / _PB;
 
+  /// Value in kibibytes (IEC).
   double get kibiBytes => _bytes / _KIB;
+
+  /// Value in mebibytes (IEC).
   double get mebiBytes => _bytes / _MIB;
+
+  /// Value in gibibytes (IEC).
   double get gibiBytes => _bytes / _GIB;
+
+  /// Value in tebibytes (IEC).
   double get tebiBytes => _bytes / _TIB;
+
+  /// Value in pebibytes (IEC).
   double get pebiBytes => _bytes / _PIB;
 
   /// Exact byte representation of this value.
   double get bytes => _bytes;
 
+  /// Returns [bytes] rounded to [precision] fraction digits (no unit).
   num asBytes({int precision = 2}) => _withPrecision(_bytes, precision);
+
+  /// Exact bit representation of this value.
   int get bits => _bits;
 
   // Math operations
+  /// Adds [other] to this value.
   ByteConverter operator +(ByteConverter other) {
     return ByteConverter._(
       _bytes + other._bytes,
@@ -132,6 +194,7 @@ class ByteConverter implements Comparable<ByteConverter> {
     );
   }
 
+  /// Subtracts [other] from this value.
   ByteConverter operator -(ByteConverter other) {
     return ByteConverter._(
       _bytes - other._bytes,
@@ -139,20 +202,36 @@ class ByteConverter implements Comparable<ByteConverter> {
     );
   }
 
+  /// Multiplies by [factor].
   ByteConverter operator *(num factor) => ByteConverter(_bytes * factor);
 
+  /// Divides by [divisor].
   ByteConverter operator /(num divisor) => ByteConverter(_bytes / divisor);
 
   // Comparison operators
+  /// True if this value is greater than [other].
   bool operator >(ByteConverter other) => _bits > other._bits;
+
+  /// True if this value is less than [other].
   bool operator <(ByteConverter other) => _bits < other._bits;
+
+  /// True if this value is less than or equal to [other].
   bool operator <=(ByteConverter other) => _bits <= other._bits;
+
+  /// True if this value is greater than or equal to [other].
   bool operator >=(ByteConverter other) => _bits >= other._bits;
 
   // Rounding methods
+  /// Rounds up to the next sector boundary (512 B).
   ByteConverter roundToSector() => ByteConverter(sectors * _SECTOR_SIZE);
+
+  /// Rounds up to the next block boundary (4096 B).
   ByteConverter roundToBlock() => ByteConverter(blocks * _BLOCK_SIZE);
+
+  /// Rounds up to the next page boundary (4096 B).
   ByteConverter roundToPage() => ByteConverter(pages * _PAGE_SIZE);
+
+  /// Rounds up to the next word boundary (8 B).
   ByteConverter roundToWord() => ByteConverter(words * _WORD_SIZE);
 
   /// Aligns this converter to a [StorageProfile] bucket using the configured rounding rules.
