@@ -6,14 +6,19 @@
 /// cumulative quantile position. Quantiles are estimated via boundary
 /// interpolation between adjacent centroids.
 class TDigest {
+  /// Creates a t-digest with a target [compression] (cluster upper bound).
+  /// Higher values use more memory and provide more accurate tails.
   TDigest({this.compression = 200}) : assert(compression > 20);
 
+  /// Target compression parameter controlling cluster sizes.
   final int compression;
   final List<_Centroid> _centroids = <_Centroid>[];
   double _count = 0;
 
+  /// Total weight of all samples added.
   double get count => _count;
 
+  /// Adds a single sample [x] with optional weight [w] (default 1).
   void add(double x, [double w = 1]) {
     if (x.isNaN || x.isInfinite) return;
     if (w <= 0) return;
@@ -28,12 +33,14 @@ class TDigest {
     _compress();
   }
 
+  /// Adds all values from [values] with unit weight.
   void addAll(Iterable<double> values) {
     for (final v in values) {
       add(v);
     }
   }
 
+  /// Estimates the value at quantile [q] where q is in [0,1].
   double quantile(double q) {
     if (_centroids.isEmpty) return double.nan;
     if (q <= 0) return _centroids.first.mean;

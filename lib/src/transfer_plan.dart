@@ -3,6 +3,8 @@ import 'data_rate.dart';
 
 /// Simple transfer planning model for estimating ETAs and progress.
 class TransferPlan {
+  /// Creates a new plan for transferring [totalBytes] at a nominal [rate].
+  /// Optional [transferredBytes] or [elapsed] allow seeding the current state.
   TransferPlan({
     required this.totalBytes,
     required this.rate,
@@ -22,6 +24,7 @@ class TransferPlan {
   final ByteConverter totalBytes;
 
   /// Nominal transfer rate.
+  /// Nominal data rate used for duration estimates.
   final DataRate rate;
   final ByteConverter? _transferredBytes;
   final Duration? _elapsed;
@@ -107,6 +110,7 @@ class TransferPlan {
     return '${seconds}s';
   }
 
+  /// Returns a new plan with selected fields replaced.
   TransferPlan copyWith({
     ByteConverter? total,
     DataRate? rate,
@@ -136,6 +140,7 @@ class TransferPlan {
 
 /// ByteConverter helpers for transfer planning.
 extension ByteConverterTransfer on ByteConverter {
+  /// Creates a [TransferPlan] assuming transfer at [rate].
   TransferPlan estimateTransfer(
     DataRate rate, {
     Duration? elapsed,
@@ -152,6 +157,7 @@ extension ByteConverterTransfer on ByteConverter {
 
 /// DataRate helpers for planning.
 extension DataRatePlanning on DataRate {
+  /// Returns the maximum transferable bytes in the given [window] at this rate.
   ByteConverter transferableBytes(Duration window) {
     final seconds = window.inMicroseconds / 1e6;
     final bytes = bytesPerSecond * seconds;
@@ -161,13 +167,19 @@ extension DataRatePlanning on DataRate {
 
 /// Represents a window of rate over a time span, for planning variable schedules.
 class RateWindow {
+  /// A window of [rate] sustained for [duration].
   RateWindow({required this.rate, required this.duration});
+
+  /// Data rate for this window.
   final DataRate rate;
+
+  /// Duration for which [rate] applies. Must be positive.
   final Duration duration; // duration > 0
 }
 
 /// Advanced controls: schedules, pause/resume, and throttling.
 extension TransferPlanAdvanced on TransferPlan {
+  /// Adds a [RateWindow] to the schedule used to compute effective rate.
   void addRateWindow(RateWindow window) {
     if (window.duration <= Duration.zero) {
       throw ArgumentError('RateWindow duration must be positive');
@@ -175,11 +187,16 @@ extension TransferPlanAdvanced on TransferPlan {
     _schedule.add(window);
   }
 
+  /// Removes all scheduled rate windows.
   void clearSchedule() => _schedule.clear();
 
+  /// Pauses the plan; effective rate becomes zero.
   void pause() => _paused = true;
+
+  /// Resumes the plan after a [pause].
   void resume() => _paused = false;
 
+  /// Applies a multiplicative throttle [factor] in [0,1] to the effective rate.
   void setThrottle(double factor) {
     if (factor.isNaN || factor.isInfinite || factor < 0 || factor > 1) {
       throw ArgumentError('Throttle must be between 0 and 1');

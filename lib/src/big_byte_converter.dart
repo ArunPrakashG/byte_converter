@@ -80,11 +80,17 @@ class BigByteConverter implements Comparable<BigByteConverter> {
   BigByteConverter.fromYobiBytes(BigInt value) : this(value * _YIB);
 
   // Factory constructor for JSON deserialization
+  /// Reconstructs a [BigByteConverter] from a JSON map produced by [toJson],
+  /// expecting a string-encoded integer value under the key `bytes`.
+  ///
+  /// Throws [FormatException] if `bytes` cannot be parsed as a [BigInt].
   factory BigByteConverter.fromJson(Map<String, dynamic> json) {
     return BigByteConverter(BigInt.parse(json['bytes'] as String));
   }
 
   // Factory constructor from regular ByteConverter
+  /// Creates a [BigByteConverter] from a regular [ByteConverter], preserving
+  /// the byte count without precision loss by converting to [BigInt].
   factory BigByteConverter.fromByteConverter(ByteConverter converter) {
     final bytes = converter.asBytes();
     return BigByteConverter(BigInt.from(bytes.toInt()));
@@ -135,9 +141,16 @@ class BigByteConverter implements Comparable<BigByteConverter> {
   BigInt get words => (_bytes + _WORD_SIZE - BigInt.one) ~/ _WORD_SIZE;
 
   // Network rates - return double for practical use
+  /// Bits per second when interpreting this value as a per-second payload.
   BigInt get bitsPerSecond => _bits;
+
+  /// Kilobits per second (SI).
   double get kiloBitsPerSecond => _bits.toDouble() / 1000;
+
+  /// Megabits per second (SI).
   double get megaBitsPerSecond => kiloBitsPerSecond / 1000;
+
+  /// Gigabits per second (SI).
   double get gigaBitsPerSecond => megaBitsPerSecond / 1000;
 
   // Time-based methods
@@ -152,9 +165,16 @@ class BigByteConverter implements Comparable<BigByteConverter> {
       );
 
   // Convenience getters
+  /// True if [_bytes] is aligned to a 512-byte sector.
   bool get isWholeSector => _bytes % _SECTOR_SIZE == BigInt.zero;
+
+  /// True if [_bytes] is aligned to a 4 KiB block.
   bool get isWholeBlock => _bytes % _BLOCK_SIZE == BigInt.zero;
+
+  /// True if [_bytes] is aligned to a 4 KiB page.
   bool get isWholePage => _bytes % _PAGE_SIZE == BigInt.zero;
+
+  /// True if [_bytes] is a multiple of an 8-byte word.
   bool get isWholeWord => _bytes % _WORD_SIZE == BigInt.zero;
 
   // Unit getters - return double for practical calculations
@@ -168,49 +188,118 @@ class BigByteConverter implements Comparable<BigByteConverter> {
   BigInt get bytes => _bytes;
 
   // Decimal unit getters
+  /// Decimal kilobytes (1000^1).
   double get kiloBytes => _bytes.toDouble() / _KB.toDouble();
+
+  /// Decimal megabytes (1000^2).
   double get megaBytes => _bytes.toDouble() / _MB.toDouble();
+
+  /// Decimal gigabytes (1000^3).
   double get gigaBytes => _bytes.toDouble() / _GB.toDouble();
+
+  /// Decimal terabytes (1000^4).
   double get teraBytes => _bytes.toDouble() / _TB.toDouble();
+
+  /// Decimal petabytes (1000^5).
   double get petaBytes => _bytes.toDouble() / _PB.toDouble();
+
+  /// Decimal exabytes (1000^6).
   double get exaBytes => _bytes.toDouble() / _EB.toDouble();
+
+  /// Decimal zettabytes (1000^7).
   double get zettaBytes => _bytes.toDouble() / _ZB.toDouble();
+
+  /// Decimal yottabytes (1000^8).
   double get yottaBytes => _bytes.toDouble() / _YB.toDouble();
+
+  /// Decimal ronnabytes (1000^9).
   double get ronnaBytes => _bytes.toDouble() / _RB.toDouble();
+
+  /// Decimal quettabytes (1000^10).
   double get quettaBytes => _bytes.toDouble() / _QB.toDouble();
 
   // Binary unit getters
+  /// Binary kibibytes (1024^1).
   double get kibiBytes => _bytes.toDouble() / _KIB.toDouble();
+
+  /// Binary mebibytes (1024^2).
   double get mebiBytes => _bytes.toDouble() / _MIB.toDouble();
+
+  /// Binary gibibytes (1024^3).
   double get gibiBytes => _bytes.toDouble() / _GIB.toDouble();
+
+  /// Binary tebibytes (1024^4).
   double get tebiBytes => _bytes.toDouble() / _TIB.toDouble();
+
+  /// Binary pebibytes (1024^5).
   double get pebiBytes => _bytes.toDouble() / _PIB.toDouble();
+
+  /// Binary exbibytes (1024^6).
   double get exbiBytes => _bytes.toDouble() / _EIB.toDouble();
+
+  /// Binary zebibytes (1024^7).
   double get zebiBytes => _bytes.toDouble() / _ZIB.toDouble();
+
+  /// Binary yobibytes (1024^8).
   double get yobiBytes => _bytes.toDouble() / _YIB.toDouble();
 
   // Exact BigInt unit getters for precise calculations
+  /// Truncated decimal kilobytes (1000^1).
   BigInt get kiloBytesExact => _bytes ~/ _KB;
+
+  /// Truncated decimal megabytes (1000^2).
   BigInt get megaBytesExact => _bytes ~/ _MB;
+
+  /// Truncated decimal gigabytes (1000^3).
   BigInt get gigaBytesExact => _bytes ~/ _GB;
+
+  /// Truncated decimal terabytes (1000^4).
   BigInt get teraBytesExact => _bytes ~/ _TB;
+
+  /// Truncated decimal petabytes (1000^5).
   BigInt get petaBytesExact => _bytes ~/ _PB;
+
+  /// Truncated decimal exabytes (1000^6).
   BigInt get exaBytesExact => _bytes ~/ _EB;
+
+  /// Truncated decimal zettabytes (1000^7).
   BigInt get zettaBytesExact => _bytes ~/ _ZB;
+
+  /// Truncated decimal yottabytes (1000^8).
   BigInt get yottaBytesExact => _bytes ~/ _YB;
+
+  /// Truncated decimal ronnabytes (1000^9).
   BigInt get ronnaBytesExact => _bytes ~/ _RB;
+
+  /// Truncated decimal quettabytes (1000^10).
   BigInt get quettaBytesExact => _bytes ~/ _QB;
 
+  /// Truncated binary kibibytes (1024^1).
   BigInt get kibiBytesExact => _bytes ~/ _KIB;
+
+  /// Truncated binary mebibytes (1024^2).
   BigInt get mebiBytesExact => _bytes ~/ _MIB;
+
+  /// Truncated binary gibibytes (1024^3).
   BigInt get gibiBytesExact => _bytes ~/ _GIB;
+
+  /// Truncated binary tebibytes (1024^4).
   BigInt get tebiBytesExact => _bytes ~/ _TIB;
+
+  /// Truncated binary pebibytes (1024^5).
   BigInt get pebiBytesExact => _bytes ~/ _PIB;
+
+  /// Truncated binary exbibytes (1024^6).
   BigInt get exbiBytesExact => _bytes ~/ _EIB;
+
+  /// Truncated binary zebibytes (1024^7).
   BigInt get zebiBytesExact => _bytes ~/ _ZIB;
+
+  /// Truncated binary yobibytes (1024^8).
   BigInt get yobiBytesExact => _bytes ~/ _YIB;
 
   // Math operations
+  /// Adds two byte magnitudes.
   BigByteConverter operator +(BigByteConverter other) {
     return BigByteConverter._(
       _bytes + other._bytes,
@@ -218,6 +307,7 @@ class BigByteConverter implements Comparable<BigByteConverter> {
     );
   }
 
+  /// Subtracts [other] from this magnitude.
   BigByteConverter operator -(BigByteConverter other) {
     return BigByteConverter._(
       _bytes - other._bytes,
@@ -225,24 +315,41 @@ class BigByteConverter implements Comparable<BigByteConverter> {
     );
   }
 
+  /// Multiplies this magnitude by an integer [factor].
   BigByteConverter operator *(BigInt factor) =>
       BigByteConverter(_bytes * factor);
 
+  /// Truncating division by [divisor].
   BigByteConverter operator ~/(BigInt divisor) =>
       BigByteConverter(_bytes ~/ divisor);
 
   // Comparison operators
+  /// True when this value is greater than [other].
   bool operator >(BigByteConverter other) => _bits > other._bits;
+
+  /// True when this value is less than [other].
   bool operator <(BigByteConverter other) => _bits < other._bits;
+
+  /// True when this value is less than or equal to [other].
   bool operator <=(BigByteConverter other) => _bits <= other._bits;
+
+  /// True when this value is greater than or equal to [other].
   bool operator >=(BigByteConverter other) => _bits >= other._bits;
 
   // Rounding methods
+  /// Rounds up to the next sector boundary (512 bytes).
   BigByteConverter roundToSector() => BigByteConverter(sectors * _SECTOR_SIZE);
+
+  /// Rounds up to the next filesystem block (4 KiB).
   BigByteConverter roundToBlock() => BigByteConverter(blocks * _BLOCK_SIZE);
+
+  /// Rounds up to the next memory page (4 KiB).
   BigByteConverter roundToPage() => BigByteConverter(pages * _PAGE_SIZE);
+
+  /// Rounds up to the next 64-bit word.
   BigByteConverter roundToWord() => BigByteConverter(words * _WORD_SIZE);
 
+  /// Rounds according to a [StorageProfile] (block size and rounding mode).
   BigByteConverter roundToProfile(
     StorageProfile profile, {
     String? alignment,
@@ -274,6 +381,8 @@ class BigByteConverter implements Comparable<BigByteConverter> {
     }
   }
 
+  /// Returns the additional bytes required to reach the next alignment boundary
+  /// as defined by [profile]. The result is itself aligned to the boundary.
   BigByteConverter alignmentSlack(
     StorageProfile profile, {
     String? alignment,
@@ -296,6 +405,7 @@ class BigByteConverter implements Comparable<BigByteConverter> {
     return BigByteConverter(alignedSlackBytes);
   }
 
+  /// Whether this value is already aligned to the specified [profile] bucket.
   bool isAligned(
     StorageProfile profile, {
     String? alignment,
@@ -309,12 +419,14 @@ class BigByteConverter implements Comparable<BigByteConverter> {
   int compareTo(BigByteConverter other) => _bits.compareTo(other._bits);
 
   // String formatting
+  /// Formats this value using an explicit [unit] and [precision].
   String toHumanReadable(BigSizeUnit unit, {int precision = 2}) {
     final value = _convertToUnit(unit);
     return '${_withPrecision(value, precision)}${_getUnitString(unit)}';
   }
 
-  /// Auto humanize with SI/IEC/JEDEC using helper
+  /// Formats this value by automatically selecting the best unit according to
+  /// the provided options. Supports SI/IEC/JEDEC and bits.
   String toHumanReadableAuto({
     ByteStandard standard = ByteStandard.si,
     bool useBits = false,
@@ -461,13 +573,16 @@ class BigByteConverter implements Comparable<BigByteConverter> {
   int get hashCode => _bits.hashCode;
 
   // JSON serialization
+  /// Serializes this value to a JSON map containing the byte count as string.
   Map<String, dynamic> toJson() => {'bytes': _bytes.toString()};
 
   // Conversion to regular ByteConverter (may lose precision)
+  /// Converts to a double-based [ByteConverter]. May lose precision for very large values.
   ByteConverter toByteConverter() {
     return ByteConverter(_bytes.toDouble());
   }
 
+  /// Pattern-based formatter. See [ByteConverter.formatWith] for token set.
   String formatWith(String pattern,
       {ByteFormatOptions options = const ByteFormatOptions()}) {
     final res = humanize(
@@ -541,6 +656,7 @@ class BigByteConverter implements Comparable<BigByteConverter> {
     return out;
   }
 
+  /// Convenience that returns full-word localized unit names.
   String toFullWords({ByteFormatOptions options = const ByteFormatOptions()}) {
     return toHumanReadableAuto(
       standard: options.standard,
@@ -563,6 +679,8 @@ class BigByteConverter implements Comparable<BigByteConverter> {
     );
   }
 
+  /// Returns the largest whole-number unit and its integer value using the
+  /// given [standard]. For example, 1536 B under SI becomes (1, 'KB').
   ({int value, String symbol}) largestWholeNumber(
       {ByteStandard standard = ByteStandard.si, bool useBytes = true}) {
     return toByteConverter()

@@ -30,6 +30,7 @@ import 'localized_unit_names.dart';
 ///   IEC where unit counts can reach 1,023. SI counts are in 0..999 by
 ///   construction and typically do not display grouping.
 class CompoundFormatOptions {
+  /// Creates compound-format options controlling decomposition and output.
   const CompoundFormatOptions({
     this.standard = ByteStandard.iec,
     this.useBits = false,
@@ -44,18 +45,37 @@ class CompoundFormatOptions {
     this.useGrouping = true,
   });
 
+  /// Unit standard used to decompose the quantity (SI/IEC/JEDEC).
   final ByteStandard standard;
+
+  /// When true, decompose in bits (lowercase symbols) instead of bytes.
   final bool useBits;
+
+  /// Maximum number of parts returned, from largest to smallest.
   final int maxParts;
+
+  /// String inserted between each unit part.
   final String separator;
+
+  /// String inserted between the integer value and the unit text.
   final String spacer;
+
+  /// When true, omit leading zero-valued larger units.
   final bool zeroSuppress;
 
   /// Force the smallest unit displayed (e.g., 'B' or 'b'). If null, stops at last non-zero.
   final String? smallestUnit;
+
+  /// Whether to output localized full unit names instead of symbols.
   final bool fullForm;
+
+  /// Overrides for localized full unit names.
   final Map<String, String>? fullForms;
+
+  /// Optional locale for grouping when [useGrouping] is true.
   final String? locale;
+
+  /// Whether to format integers using grouping separators.
   final bool useGrouping;
 }
 

@@ -2,24 +2,35 @@ import 'big_byte_converter.dart';
 import 'byte_converter_base.dart';
 import 'tdigest.dart';
 
-/// A single histogram bucket with an optional [upperBound] and [count].
+/// Represents a histogram bucket for double-based magnitudes with an optional
+/// inclusive [upperBound] and associated [count].
 class HistogramBucket {
+  /// Creates a bucket with an inclusive [upperBound] and a sample [count].
   const HistogramBucket({required this.count, this.upperBound});
 
+  /// Inclusive upper bound for this bucket (null indicates the catch-all tail).
   final double? upperBound;
+
+  /// Number of samples that fall into this bucket.
   final int count;
 }
 
-/// A collection of histogram buckets.
+/// Histogram of [HistogramBucket]s for double-based magnitudes.
 class Histogram {
+  /// Creates a histogram from an ordered list of [buckets].
   const Histogram(this.buckets);
 
+  /// Buckets in ascending order by [HistogramBucket.upperBound].
   final List<HistogramBucket> buckets;
 
+  /// Total number of samples across all buckets.
   int get totalCount => buckets.fold<int>(0, (sum, bin) => sum + bin.count);
 }
 
 /// Numeric aggregations over mixed byte-like inputs (double, int, BigInt, converters).
+/// Aggregations and utilities over byte magnitudes.
+/// Aggregations and utilities over byte magnitudes.
+/// Statistical utilities over collections of byte-like values.
 class ByteStats {
   /// Sum of values treated as bytes.
   static double sum(Iterable<Object?> values) {
@@ -69,6 +80,8 @@ class ByteStats {
   }
 
   /// Builds a histogram with the provided [buckets] as upper bounds.
+  /// Builds a histogram of [values] using the provided ascending [buckets]
+  /// as inclusive upper bounds. The final bucket is an open-ended tail.
   static Histogram histogram(
     Iterable<Object?> values, {
     required List<double> buckets,
@@ -114,23 +127,36 @@ class ByteStats {
 }
 
 /// A histogram bucket for BigInt magnitudes.
+/// A single histogram bucket for BigInt magnitudes.
+/// A single histogram bucket for BigInt magnitudes.
+/// Represents a histogram bucket for [BigInt]-sized magnitudes.
 class BigHistogramBucket {
+  /// Creates a BigInt bucket with an inclusive [upperBound] and a [count].
   const BigHistogramBucket({required this.count, this.upperBound});
 
+  /// Inclusive upper bound for this bucket (null indicates the catch-all tail).
   final BigInt? upperBound;
+
+  /// Number of samples that fall into this bucket.
   final int count;
 }
 
 /// Histogram wrapper for BigInt buckets.
+/// A histogram with BigInt [BigHistogramBucket]s.
+/// A histogram with BigInt [BigHistogramBucket]s.
+/// Histogram of [BigHistogramBucket]s for BigInt magnitudes.
 class BigHistogram {
+  /// Creates a histogram from an ordered list of BigInt [buckets].
   const BigHistogram(this.buckets);
 
+  /// Buckets in ascending order by [BigHistogramBucket.upperBound].
   final List<BigHistogramBucket> buckets;
 
+  /// Total number of samples across all buckets.
   int get totalCount => buckets.fold<int>(0, (sum, bin) => sum + bin.count);
 }
 
-/// BigInt-backed aggregations for extremely large values without precision loss.
+/// Statistical utilities operating on very large byte magnitudes using BigInt.
 class BigByteStats {
   /// Sum of values treated as bytes, returned as BigInt.
   static BigInt sum(Iterable<Object?> values) {
@@ -185,6 +211,8 @@ class BigByteStats {
   }
 
   /// Builds a histogram for BigInt magnitudes with [buckets] as upper bounds.
+  /// Builds a histogram of [values] using BigInt [buckets] as inclusive
+  /// upper bounds. The final bucket is an open-ended tail.
   static BigHistogram histogram(
     Iterable<Object?> values, {
     required List<BigInt> buckets,
@@ -245,10 +273,20 @@ class BigByteStats {
 /// Streaming quantile estimator interface with factory constructors for
 /// P² (default) and TDigest implementations.
 abstract class StreamingQuantiles {
+  /// Creates a P² streaming quantile estimator that maintains approximate
+  /// positions for the provided [quantiles] (expressed as 0..1 fractions).
   factory StreamingQuantiles(List<double> quantiles) = _P2Quantiles;
+
+  /// Creates a TDigest-based streaming quantile estimator. Optional
+  /// [compression] controls accuracy vs memory usage (higher is more accurate).
   factory StreamingQuantiles.tDigest({int compression}) = _TDigestQuantiles;
 
+  /// Adds a sample value to the estimator. Accepts any byte-like value type
+  /// supported by the underlying implementation.
   void add(Object? value);
+
+  /// Returns the estimated value at [percentile], where 0..100 indicates the
+  /// desired percentile (for example, 50 for median, 99 for P99).
   double estimate(double percentile);
 }
 

@@ -19,6 +19,7 @@ void enableByteConverterLite() {
   registerHumanizeNumberFormatter(_LiteHumanizeNumberFormatter().format);
 }
 
+/// Disable the lightweight number formatter and fall back to defaults.
 void disableByteConverterLite() => clearHumanizeNumberFormatter();
 
 class _LocaleSpec {

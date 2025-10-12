@@ -374,6 +374,8 @@ final Map<String, Map<String, String>> _customLocalizedSynonyms = {};
 final Map<String, Map<String, String>> _customLocalizedSingular = {};
 bool _defaultsEnabled = true;
 
+/// Returns the built-in English localized unit names map (read-only) used as
+/// a fallback when no custom mapping is registered.
 Map<String, String> localizedUnitNameMapForDefaultLocale() =>
     UnmodifiableMapView(_defaultLocalizedUnits['en']!);
 
@@ -391,6 +393,8 @@ String? _lookupInMaps(String localeKey, String symbol) {
   return null;
 }
 
+/// Returns a localized full name for a canonical unit [symbol] for the given
+/// [locale] (base-locale fallback). Returns null when no mapping is found.
 String? localizedUnitName(String symbol, {String? locale}) {
   if (locale == null || locale.isEmpty) return null;
   final normalized = locale.toLowerCase();
@@ -407,18 +411,24 @@ String? localizedUnitName(String symbol, {String? locale}) {
   return null;
 }
 
+/// Registers custom localized full names for a [locale]. Keys must be
+/// canonical symbols (e.g., `KB`, `MiB`, `kb`).
 void registerLocalizedUnitNames(String locale, Map<String, String> names) {
   final key = locale.toLowerCase();
   final existing = _customLocalizedUnits.putIfAbsent(key, HashMap.new);
   existing.addAll(names);
 }
 
+/// Clears previously registered localized unit names for [locale].
 void clearLocalizedUnitNames(String locale) {
   _customLocalizedUnits.remove(locale.toLowerCase());
 }
 
 /// Register per-locale synonyms that map localized words back to canonical symbols.
 /// Example (fr): { 'octet': 'B', 'octets': 'B', 'kilooctets': 'KB', 'ko': 'KB' }
+/// Registers per-[locale] synonyms mapping localized words back to canonical
+/// symbols, used during parsing (e.g., 'octets' -> 'B'). Keys are matched
+/// case-insensitively.
 void registerLocalizedSynonyms(String locale, Map<String, String> synonyms) {
   final key = locale.toLowerCase();
   final existing = _customLocalizedSynonyms.putIfAbsent(key, HashMap.new);
@@ -427,12 +437,15 @@ void registerLocalizedSynonyms(String locale, Map<String, String> synonyms) {
       .addAll({for (final e in synonyms.entries) e.key.toLowerCase(): e.value});
 }
 
+/// Clears previously registered localized synonyms for [locale].
 void clearLocalizedSynonyms(String locale) {
   _customLocalizedSynonyms.remove(locale.toLowerCase());
 }
 
 /// Register singular forms for full-form names per locale (optional).
 /// keys must be canonical plural names from localizedUnitName (e.g., 'kilobytes'), values singular (e.g., 'kilobyte').
+/// Registers singular forms for full-form names per [locale]. Keys must be
+/// canonical plural names returned by [localizedUnitName] (e.g., 'kilobytes').
 void registerLocalizedSingularNames(
     String locale, Map<String, String> singular) {
   final key = locale.toLowerCase();
@@ -440,12 +453,15 @@ void registerLocalizedSingularNames(
   existing.addAll(singular);
 }
 
+/// Clears previously registered localized singular-name overrides for [locale].
 void clearLocalizedSingularNames(String locale) {
   _customLocalizedSingular.remove(locale.toLowerCase());
 }
 
 /// Returns a singular name for the given unit symbol if available for the locale.
 /// Falls back to plural name when no singular registered.
+/// Returns the singular form for a unit [symbol] in [locale] when available.
+/// Falls back to plural when no singular is registered.
 String? localizedUnitSingularName(String symbol,
     {String? locale, bool bits = false}) {
   if (locale == null || locale.isEmpty) return null;
@@ -463,6 +479,8 @@ String? localizedUnitSingularName(String symbol,
 
 /// Resolve a localized token (possibly a full word or synonym) back to a canonical unit symbol.
 /// This is used by parseLocalized helpers. Returns null if no mapping is found.
+/// Resolves a localized [token] (full word or synonym) back to a canonical
+/// unit symbol. Returns null if no mapping is found.
 String? resolveLocalizedUnitSymbol(String token, {String? locale}) {
   if (token.isEmpty) return null;
   final t = token.toLowerCase();
@@ -557,11 +575,13 @@ String? resolveLocalizedUnitSymbol(String token, {String? locale}) {
 }
 
 /// Disable built-in default localized unit names to enable tree-shaking strategies.
+/// Disables the built-in default localized unit names to aid tree-shaking.
 void disableDefaultLocalizedUnitNames() {
   _defaultsEnabled = false;
 }
 
 /// Re-enable built-in default localized unit names.
+/// Re-enables the built-in default localized unit names.
 void enableDefaultLocalizedUnitNames() {
   _defaultsEnabled = true;
 }

@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.4.2
+
+### Added / Improved
+
+- Package-wide public API documentation completed and enforced via `public_member_api_docs`.
+- Clarified docs across `BigByteConverter`, `ByteConverter`, compound formatting, parse results, storage profiles, and unified parsing types.
+- Resolved all analyzer warnings; repository is analyzer-clean.
+
+### Notes
+
+- No functional changes. This is a documentation-only release to improve API discoverability and consistency.
+
 ## 2.4.1
 
 ### Added / Improved

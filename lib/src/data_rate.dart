@@ -139,7 +139,7 @@ class DataRate implements Comparable<DataRate> {
       baseBytesPerUnit,
       HumanizeOptions(
         standard: standard,
-        useBits: useBytes ? false : true, // if not bytes, use bits
+        useBits: !useBytes, // if not bytes, use bits
         precision: precision,
         showSpace: showSpace,
         nonBreakingSpace: nonBreakingSpace,
@@ -253,6 +253,14 @@ class DataRate implements Comparable<DataRate> {
   @override
   String toString() => toHumanReadableAuto();
 
+  /// Formats the rate using a custom [pattern].
+  ///
+  /// Placeholders:
+  /// - 'U' = localized full unit name (e.g., megabytes)
+  /// - 'u' = unit symbol (e.g., MB)
+  /// - a numeric mask like 0.## replaced by the value
+  ///
+  /// [per] controls the time unit denominator ('s', 'ms', 'min', 'h').
   String formatWith(String pattern,
       {ByteFormatOptions options = const ByteFormatOptions(),
       String per = 's'}) {
@@ -270,7 +278,7 @@ class DataRate implements Comparable<DataRate> {
       baseBytesPerUnit,
       HumanizeOptions(
         standard: options.standard,
-        useBits: options.useBytes ? false : true,
+        useBits: !options.useBytes,
         precision: options.precision,
         showSpace: true,
         nonBreakingSpace: options.nonBreakingSpace,
@@ -311,6 +319,8 @@ class DataRate implements Comparable<DataRate> {
     return '$core${_perSuffix(perSeconds)}';
   }
 
+  /// Formats the rate as full words (e.g., "12 megabytes per second").
+  /// [per] controls the time unit denominator ('s', 'ms', 'min', 'h').
   String toFullWords(
       {ByteFormatOptions options = const ByteFormatOptions(),
       String per = 's'}) {

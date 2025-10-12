@@ -1,7 +1,15 @@
+/// Storage device alignment profiles and rounding preferences.
+///
+/// Provides types for describing alignment buckets (sectors/blocks/pages)
+/// and a [StorageProfile] used by converters to align and round sizes.
+library byte_converter.storage_profile;
+
 import 'byte_enums.dart';
 
 /// Describes a single alignment class within a [StorageProfile].
 class StorageAlignment {
+  /// Defines an alignment bucket with a [name], [blockSizeBytes], and optional
+  /// rounding strategy override [rounding].
   const StorageAlignment({
     required this.name,
     required this.blockSizeBytes,
@@ -20,8 +28,12 @@ class StorageAlignment {
 }
 
 /// Defines storage alignment preferences used by byte converters when rounding
-/// to device specific buckets.
+/// to device-specific bucket sizes such as sectors, blocks, or pages.
 class StorageProfile {
+  /// Creates a profile with one or more named [alignments]. The optional
+  /// [defaultAlignment] selects which alignment is used when none is specified.
+  /// If omitted, the first alignment becomes the default. The [defaultRounding]
+  /// applies when a particular alignment does not override rounding.
   StorageProfile({
     required List<StorageAlignment> alignments,
     String? defaultAlignment,
@@ -41,6 +53,7 @@ class StorageProfile {
     _defaultAlignmentKey = key;
   }
 
+  /// Convenience factory for a single-alignment profile.
   factory StorageProfile.single({
     required String name,
     required int blockSizeBytes,
@@ -72,12 +85,12 @@ class StorageProfile {
   /// Returns the canonical name of the default alignment bucket.
   String get defaultAlignment => _alignments[_defaultAlignmentKey]!.name;
 
-  /// Human friendly listing of available alignment names.
+  /// Human-friendly listing of available alignment names.
   List<String> get alignmentNames => _alignments.values
       .map((alignment) => alignment.name)
       .toList(growable: false);
 
-  /// Checks if an alignment with the provided [name] exists (case insensitive).
+  /// Checks if an alignment with the provided [name] exists (case-insensitive).
   bool hasAlignment(String name) => _alignments.containsKey(_normalize(name));
 
   /// Resolves an alignment using the provided [name] or falls back to the

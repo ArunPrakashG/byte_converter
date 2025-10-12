@@ -11,3 +11,7 @@ analyzer:
 linter:
   rules:
     constant_identifier_names: false
+    avoid_bool_literals_in_conditional_expressions: true
+    public_member_api_docs: true
+    prefer_if_null_operators: true
+    unnecessary_await_in_return: true

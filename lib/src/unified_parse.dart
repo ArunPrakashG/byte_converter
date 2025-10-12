@@ -5,15 +5,27 @@ import 'byte_enums.dart';
 import 'localized_unit_names.dart';
 import 'parse_result.dart';
 
-/// Sealed-like result for auto parsing a byte size.
+/// Abstract view over an auto-parsed byte size, which may be backed by a
+/// regular-precision or BigInt-precision implementation depending on size.
 abstract class ParsedByteSize {
+  /// Default const constructor for subclasses.
+  ///
+  /// Enables using `const` for lightweight wrapper instances when appropriate.
   const ParsedByteSize();
+
+  /// True when the parsed value uses BigInt precision.
   bool get isBig;
+
+  /// Byte count as a double for quick comparisons/thresholding.
   double get bytes;
 }
 
+/// Normal-sized parsed result backed by a [ByteConverter].
 class ParsedNormal extends ParsedByteSize {
+  /// Creates a [ParsedNormal] carrying a [ByteConverter] value.
   const ParsedNormal(this.value);
+
+  /// The parsed value using double-based precision.
   final ByteConverter value;
   @override
   bool get isBig => false;
@@ -21,8 +33,13 @@ class ParsedNormal extends ParsedByteSize {
   double get bytes => value.asBytes().toDouble();
 }
 
+/// Parsed result carrying a [BigByteConverter] for very large magnitudes.
+/// Large parsed result backed by a [BigByteConverter].
 class ParsedBig extends ParsedByteSize {
+  /// Creates a [ParsedBig] carrying a [BigByteConverter] value.
   const ParsedBig(this.value);
+
+  /// The parsed value using BigInt precision for very large magnitudes.
   final BigByteConverter value;
   @override
   bool get isBig => true;
@@ -30,8 +47,9 @@ class ParsedBig extends ParsedByteSize {
   double get bytes => value.asBytes.toDouble();
 }
 
-/// Parse a size string and return either ByteConverter or BigByteConverter depending on threshold.
-/// thresholdBytes: if parsed absolute bytes >= threshold, BigByteConverter is returned.
+/// Parses [input] and returns either [ByteConverter] or [BigByteConverter]
+/// depending on [thresholdBytes]. Useful when inputs may exceed 64-bit range.
+/// Values >= [thresholdBytes] are parsed and returned as [ParsedBig].
 ParsedByteSize parseByteSizeAuto(
   String input, {
   ByteStandard standard = ByteStandard.si,
@@ -53,7 +71,9 @@ ParsedByteSize parseByteSizeAuto(
   return ParsedNormal(ByteConverter(preview.valueInBytes));
 }
 
-/// Parse a size string using locale-aware unit words and number formats when available.
+/// Parses a size string using locale-aware unit words and number formats when
+/// available. Uses [resolveLocalizedUnitSymbol] and number normalization to
+/// reconstruct a canonical parse input before delegating to the core parser.
 ParseResult<ByteConverter> parseLocalized(
   String input, {
   String? locale,

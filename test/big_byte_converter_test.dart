@@ -258,15 +258,16 @@ void main() {
     test('returns success with diagnostics for valid input', () {
       final result = BigByteConverter.tryParse('1.5 GB');
       expect(result.isSuccess, isTrue);
-    expect(result.value, isNotNull);
-    expect(result.value!.asBytes, equals(BigInt.from(1500000000)));
+      expect(result.value, isNotNull);
+      expect(result.value!.asBytes, equals(BigInt.from(1500000000)));
       expect(result.normalizedInput, equals('1.5 GB'));
       expect(result.detectedUnit, equals('GB'));
       expect(result.isBitInput, isFalse);
     });
 
     test('captures IEC bit units', () {
-      final result = BigByteConverter.tryParse('8 kibibits', standard: ByteStandard.iec);
+      final result =
+          BigByteConverter.tryParse('8 kibibits', standard: ByteStandard.iec);
       expect(result.isSuccess, isTrue);
       expect(result.isBitInput, isTrue);
       expect(result.detectedUnit, equals('Kib'));
@@ -360,7 +361,8 @@ void main() {
       final result = DataRate.tryParse('12.5 MB/s');
       expect(result.isSuccess, isTrue);
       expect(result.value, isNotNull);
-      expect(result.value!.toHumanReadableAuto(useBytes: true), equals('12.5 MB/s'));
+      expect(result.value!.toHumanReadableAuto(useBytes: true),
+          equals('12.5 MB/s'));
       expect(result.detectedUnit, equals('MB'));
       expect(result.normalizedInput, equals('12.5 MB/s'));
       expect(result.isBitInput, isFalse);

@@ -86,7 +86,7 @@ class BigDataRate implements Comparable<BigDataRate> {
       baseBytesPerSec,
       HumanizeOptions(
         standard: standard,
-        useBits: useBytes ? false : true,
+        useBits: !useBytes,
         precision: precision,
         showSpace: showSpace,
         fullForm: fullForm,
@@ -181,7 +181,11 @@ class BigDataRate implements Comparable<BigDataRate> {
   }
 }
 
+/// Planning helpers for computing transferable bytes over a duration at a
+/// given [BigDataRate]. Methods avoid rounding drift by using integer math.
 extension BigDataRatePlanning on BigDataRate {
+  /// Returns the maximum bytes transferable within a time [window] at this
+  /// data rate. Uses integer arithmetic to avoid rounding drift.
   BigByteConverter transferableBytes(Duration window) {
     final seconds = BigInt.from(window.inSeconds);
     final totalMicros = window.inMicroseconds;

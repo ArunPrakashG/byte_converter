@@ -7,11 +7,18 @@ import 'src/humanize_options.dart';
 
 export 'byte_converter.dart';
 
+/// Factory for constructing an [NumberFormat] given a locale string.
 typedef NumberFormatFactory = NumberFormat Function(String locale);
 
 NumberFormat _defaultDecimalPattern(String locale) =>
     NumberFormat.decimalPattern(locale);
 
+/// Enable number formatting for byte humanization using the `intl` package.
+///
+/// When enabled, humanized numbers are formatted using the provided
+/// [numberFormatFactory] per locale. If not supplied, a sensible default
+/// decimal pattern is used. Call [disableByteConverterIntl] to revert to the
+/// built-in non-localized formatter.
 void enableByteConverterIntl({NumberFormatFactory? numberFormatFactory}) {
   registerHumanizeNumberFormatter(
     _IntlHumanizeNumberFormatter(
@@ -20,6 +27,7 @@ void enableByteConverterIntl({NumberFormatFactory? numberFormatFactory}) {
   );
 }
 
+/// Disable the intl-backed number formatter and fall back to defaults.
 void disableByteConverterIntl() => clearHumanizeNumberFormatter();
 
 class _IntlHumanizeNumberFormatter {

@@ -1,8 +1,15 @@
+/// Formatting option types for low-level, reusable humanize helpers.
+///
+/// These options are typically consumed by higher-level converters to
+/// configure unit scaling, spacing, grouping, and numeric rounding behavior.
+library byte_converter.format_options;
+
 import 'byte_enums.dart';
 import 'humanize_options.dart' show SiKSymbolCase;
 
-/// Reusable formatter options for humanizing sizes and rates.
+/// Reusable formatter options for humanizing sizes and transfer rates.
 class ByteFormatOptions {
+  /// Creates options for humanizing values into text with unit scaling rules.
   const ByteFormatOptions({
     this.standard = ByteStandard.si,
     this.useBytes = false,
@@ -24,9 +31,17 @@ class ByteFormatOptions {
     this.fixedWidth,
     this.includeSignInWidth = false,
   });
+
+  /// Unit standard to use when formatting.
   final ByteStandard standard;
+
+  /// When true, format bytes instead of bits.
   final bool useBytes;
+
+  /// Legacy precision for fixed fraction digits when min/max are not set.
   final int precision;
+
+  /// Whether to include a space between number and unit by default.
   final bool showSpace;
 
   /// If true and [spacer] is not provided, insert NBSP between number and unit.
@@ -72,10 +87,15 @@ class ByteFormatOptions {
   final SiKSymbolCase siKSymbolCase;
 
   /// Pad numeric portion to fixed width (spaces). Null/<=0 disables.
+  /// Minimum width of the numeric portion (left-padded with spaces).
   final int? fixedWidth;
+
+  /// When true, include the sign in width calculation.
   final bool includeSignInWidth;
 
   @override
+
+  /// Returns a concise string representation highlighting non-default options.
   String toString() {
     final parts = <String>[];
     if (standard != ByteStandard.si) parts.add('standard=$standard');

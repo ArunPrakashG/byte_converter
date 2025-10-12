@@ -65,6 +65,8 @@ class ByteConverter implements Comparable<ByteConverter> {
   /// Creates a converter from pebibytes (IEC, 1024^5).
   ByteConverter.fromPebiBytes(double value) : this(value * _PIB);
 
+  /// Reconstructs a [ByteConverter] from a JSON map produced by [toJson],
+  /// expecting a numeric value under the key `bytes`.
   factory ByteConverter.fromJson(Map<String, dynamic> json) {
     return ByteConverter(json['bytes'] as double);
   }
@@ -102,9 +104,16 @@ class ByteConverter implements Comparable<ByteConverter> {
   int get words => (_bytes / _WORD_SIZE).ceil();
 
   // Network rates
+  /// Bits per second when interpreting this value as per-second payload.
   int get bitsPerSecond => _bits;
+
+  /// Kilobits per second (SI, base 1000).
   double get kiloBitsPerSecond => bitsPerSecond / 1000;
+
+  /// Megabits per second (SI, base 1000).
   double get megaBitsPerSecond => kiloBitsPerSecond / 1000;
+
+  /// Gigabits per second (SI, base 1000).
   double get gigaBitsPerSecond => megaBitsPerSecond / 1000;
 
   // Time-based methods
@@ -158,7 +167,11 @@ class ByteConverter implements Comparable<ByteConverter> {
 
   /// Value in gigabytes (SI).
   double get gigaBytes => _gigaBytes;
+
+  /// Value in terabytes (SI).
   double get teraBytes => _bytes / _TB;
+
+  /// Value in petabytes (SI).
   double get petaBytes => _bytes / _PB;
 
   /// Value in kibibytes (IEC).
@@ -318,6 +331,8 @@ class ByteConverter implements Comparable<ByteConverter> {
     return (value * factor).round() / factor;
   }
 
+  /// Formats this value in the specified [unit] with an optional [precision]
+  /// for fractional digits. Intended for quick fixed-unit displays.
   String toHumanReadable(SizeUnit unit, {int precision = 2}) {
     final value = _convertToUnit(unit);
     return '${_withPrecision(value, precision)}${_units[unit]}';
@@ -475,6 +490,7 @@ class ByteConverter implements Comparable<ByteConverter> {
   int get hashCode => _bits.hashCode;
 
   // JSON serialization
+  /// Serializes this value to a JSON map containing the byte count.
   Map<String, dynamic> toJson() => {'bytes': _bytes};
 
   /// Pattern-based formatter:
