@@ -31,4 +31,4 @@ platforms:
   windows:
 
 executables:
-  bytec: bin/bytec.dart
+  bytec: bytec
