@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.4.1
+
+### Added / Improved
+
+- Compound mixed-unit formatting (e.g., `toHumanReadableCompound`) now honors `CompoundFormatOptions.useGrouping` and `locale` to render integers with locale-aware thousands separators (via `intl`). This especially improves IEC outputs where counts can exceed 999 (for example, `1,023 MiB`).
+- Expanded Dartdoc for compound formatting options and behavior.
+- README polish: added a friendly intro/personality, richer examples, and centered the title/badges for a more inviting presentation.
+
+### Notes
+
+- No breaking API changes. This is a visual formatting enhancement only. SI compound counts typically remain below 1000 per part; IEC benefits most from grouping.
+
 ## 2.4.0
 
 ### Added / Improved

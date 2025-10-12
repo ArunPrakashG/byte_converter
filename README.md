@@ -1,9 +1,12 @@
-# ByteConverter
+<h1 align="center">🧮 ByteConverter</h1>
 
-[![Pub Version](https://img.shields.io/pub/v/byte_converter)](https://pub.dev/packages/byte_converter)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+<p align="center">
+  <a href="https://pub.dev/packages/byte_converter"><img src="https://img.shields.io/pub/v/byte_converter" alt="Pub Version" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT" /></a>
 
-Fast, dependable byte and data-rate conversions for Dart with fluent APIs and optional BigInt precision.
+</p>
+
+<p align="center">Fast, dependable byte and data-rate conversions for Dart with fluent APIs and optional BigInt precision.</p>
 
 ## ✨ Highlights
 
@@ -22,7 +25,7 @@ Fast, dependable byte and data-rate conversions for Dart with fluent APIs and op
 
 ```yaml
 dependencies:
-  byte_converter: ^2.4.0
+  byte_converter: ^2.4.1
 ```
 
 ## 💡 Quick Example
@@ -38,6 +41,28 @@ void main() {
   print(size.toHumanReadableAuto()); // 2.5 GB
   print(plan.etaString());           // friendly ETA string
 }
+```
+
+### A little more flair ✨
+
+```dart
+// Pattern formatting with tokens: 0-number, u-symbol, U-full word, S-sign
+final s1 = ByteConverter.parse('1536 KB')
+  .formatWith('S0.0 u', options: const ByteFormatOptions(signed: true));
+// +1.5 MB
+
+// Align numbers with fixed width (great for columns)
+final rows = [1, 12, 123, 1234].map((n) =>
+  ByteConverter(n * 1000).toHumanReadableAutoWith(
+    const ByteFormatOptions(fixedWidth: 6),
+  ));
+//  "  1.0 KB", " 12.0 KB", "123.0 KB", "1,234.0 KB" (locale-aware when intl is enabled)
+
+// Prefer kB over KB? Opt into SI lower-k
+final s2 = ByteConverter.parse('2048 B').toHumanReadableAutoWith(
+  const ByteFormatOptions(siKSymbolCase: SiKSymbolCase.lowerK),
+);
+// 2.0 kB
 ```
 
 ## 🛠️ Common Tasks
@@ -62,6 +87,16 @@ final total = ByteStats.sum([
 print(total.toHumanReadableAuto());
 ```
 
+### CLI (optional) 🧰
+
+```sh
+# Format a size with fixed width and SI lower-k
+bytec format "1 GiB + 153 MiB" --fixed-width 8 --si-lower-k
+
+# Parse, humanize, and pick a rate time base
+bytec rate "125 MB/s" --per ms
+```
+
 ## 📚 Documentation
 
 The complete guide lives in the wiki:
@@ -72,6 +107,26 @@ The complete guide lives in the wiki:
 - [API Reference](https://github.com/ArunPrakashG/byte_converter/wiki/API-Reference)
 - [Recipes](https://github.com/ArunPrakashG/byte_converter/wiki/Recipes)
 - [FAQ](https://github.com/ArunPrakashG/byte_converter/wiki/FAQ)
+
+## ⚡ Fast formatting API + performance tips
+
+When you only need the fastest possible string for common cases, use the public fast API. These helpers bypass advanced features (locale, grouping, NBSP, fullForm, fixedWidth, signed) and take the shortest path:
+
+```dart
+// Ultra-fast helpers
+print(fastHumanizeSiBytes(123456789));  // e.g., "123.5 MB"
+print(fastHumanizeIecBytes(123456789)); // e.g., "117.7 MiB"
+print(fastHumanizeSiBits(123456789));   // e.g., "987.7 Mb"
+```
+
+Performance tips:
+
+- If you frequently pin a unit, pass `forceUnit` (e.g., always `GB`, `KB`, or `KiB`) with simple options to hit a micro fast-path in the main formatter.
+- Keep options minimal when you care about pure throughput (avoid locale/fullForm/fixedWidth unless needed).
+- See the wiki for a deeper guide and examples: [Formatting – Fast formatting](https://github.com/ArunPrakashG/byte_converter/wiki/Formatting#fast-formatting-ultra-low-overhead).
+- Benchmarks and methodology live here: [Benchmarks](https://github.com/ArunPrakashG/byte_converter/wiki/Benchmarks).
+
+Repro tips (Windows): use the High Performance/Ultimate power plan, keep laptops on AC power, close background apps, and run multiple times (best‑of) to reduce scheduler noise.
 
 ## 🔌 Optional Add-ons
 

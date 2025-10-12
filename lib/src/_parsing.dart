@@ -531,6 +531,169 @@ ByteParsingResult<TUnit> parseSize<TUnit>({
 }
 
 HumanizeResult humanize(double bytes, HumanizeOptions opt) {
+  // Fast path: very common case optimized for speed
+  // Conditions: SI bytes, no bits, no policy/forceUnit, default spacer/space,
+  // no locale/grouping, no fullForm, no min/max/truncate/sign/fixedWidth,
+  // default SI K case (KB).
+  if (!opt.useBits &&
+      opt.standard == ByteStandard.si &&
+      opt.policy == null &&
+      opt.forceUnit == null &&
+      !opt.fullForm &&
+      (opt.locale == null || opt.locale!.isEmpty) &&
+      opt.separator == null &&
+      opt.minimumFractionDigits == null &&
+      opt.maximumFractionDigits == null &&
+      !opt.truncate &&
+      !opt.signed &&
+      opt.spacer == null &&
+      opt.showSpace == true &&
+      !opt.nonBreakingSpace &&
+      opt.siKSymbolCase == SiKSymbolCase.upperK &&
+      opt.fixedWidth == null &&
+      !opt.includeSignInWidth) {
+    // Limit SI fast path to TB and below; larger magnitudes (PB, EB, YB, RB, QB)
+    // require the full path to select correct extended units.
+    if (bytes < 1e15) {
+      return _humanizeFastSi(bytes, opt.precision);
+    }
+  }
+  // Fast path: JEDEC bytes with default/simple options
+  if (!opt.useBits &&
+      opt.standard == ByteStandard.jedec &&
+      opt.policy == null &&
+      opt.forceUnit == null &&
+      !opt.fullForm &&
+      (opt.locale == null || opt.locale!.isEmpty) &&
+      opt.separator == null &&
+      opt.minimumFractionDigits == null &&
+      opt.maximumFractionDigits == null &&
+      !opt.truncate &&
+      !opt.signed &&
+      opt.spacer == null &&
+      opt.showSpace == true &&
+      !opt.nonBreakingSpace &&
+      opt.fixedWidth == null &&
+      !opt.includeSignInWidth) {
+    return _humanizeFastJedec(bytes, opt.precision);
+  }
+  // Fast path: SI bits with default/simple options
+  if (opt.useBits &&
+      opt.standard == ByteStandard.si &&
+      opt.policy == null &&
+      opt.forceUnit == null &&
+      !opt.fullForm &&
+      (opt.locale == null || opt.locale!.isEmpty) &&
+      opt.separator == null &&
+      opt.minimumFractionDigits == null &&
+      opt.maximumFractionDigits == null &&
+      !opt.truncate &&
+      !opt.signed &&
+      opt.spacer == null &&
+      opt.showSpace == true &&
+      !opt.nonBreakingSpace &&
+      opt.fixedWidth == null &&
+      !opt.includeSignInWidth) {
+    return _humanizeFastSiBits(bytes, opt.precision);
+  }
+  // Fast path: IEC bytes (KiB, MiB, GiB, TiB, PiB) with default/simple options
+  if (!opt.useBits &&
+      opt.standard == ByteStandard.iec &&
+      opt.policy == null &&
+      opt.forceUnit == null &&
+      !opt.fullForm &&
+      (opt.locale == null || opt.locale!.isEmpty) &&
+      opt.separator == null &&
+      opt.minimumFractionDigits == null &&
+      opt.maximumFractionDigits == null &&
+      !opt.truncate &&
+      !opt.signed &&
+      opt.spacer == null &&
+      opt.showSpace == true &&
+      !opt.nonBreakingSpace &&
+      opt.fixedWidth == null &&
+      !opt.includeSignInWidth) {
+    return _humanizeFastIec(bytes, opt.precision);
+  }
+  // Fast path: forced unit for common units without extra features
+  if (opt.forceUnit != null &&
+      opt.forceUnit!.isNotEmpty &&
+      !opt.fullForm &&
+      (opt.locale == null || opt.locale!.isEmpty) &&
+      opt.separator == null &&
+      opt.minimumFractionDigits == null &&
+      opt.maximumFractionDigits == null &&
+      !opt.truncate &&
+      !opt.signed &&
+      opt.spacer == null &&
+      opt.showSpace == true &&
+      !opt.nonBreakingSpace &&
+      opt.fixedWidth == null &&
+      !opt.includeSignInWidth &&
+      // Ensure SI 'KB' case preference matches default when applicable
+      (opt.siKSymbolCase == SiKSymbolCase.upperK)) {
+    final u = opt.forceUnit!;
+    // Micro-specialized fast paths for very common forced units
+    if (!opt.useBits) {
+      if (opt.standard == ByteStandard.si) {
+        if (u == 'KB' || u == 'MB' || u == 'GB' || u == 'TB') {
+          final base = (u == 'KB')
+              ? 1e3
+              : (u == 'MB')
+                  ? 1e6
+                  : (u == 'GB')
+                      ? 1e9
+                      : 1e12;
+          final v = bytes / base;
+          final s = _toFixedTrim(v, opt.precision);
+          return HumanizeResult(v, u, '$s $u');
+        }
+      } else if (opt.standard == ByteStandard.jedec) {
+        if (u == 'KB' || u == 'MB' || u == 'GB' || u == 'TB') {
+          final base = (u == 'KB')
+              ? 1024.0
+              : (u == 'MB')
+                  ? 1048576.0
+                  : (u == 'GB')
+                      ? 1073741824.0
+                      : 1099511627776.0;
+          final v = bytes / base;
+          final s = _toFixedTrim(v, opt.precision);
+          return HumanizeResult(v, u, '$s $u');
+        }
+      } else if (opt.standard == ByteStandard.iec) {
+        if (u == 'KiB' || u == 'MiB' || u == 'GiB' || u == 'TiB') {
+          final base = (u == 'KiB')
+              ? 1024.0
+              : (u == 'MiB')
+                  ? 1048576.0
+                  : (u == 'GiB')
+                      ? 1073741824.0
+                      : 1099511627776.0;
+          final v = bytes / base;
+          final s = _toFixedTrim(v, opt.precision);
+          return HumanizeResult(v, u, '$s $u');
+        }
+      }
+    } else {
+      if (u == 'Kb' || u == 'Mb' || u == 'Gb' || u == 'Tb') {
+        final b = bytes * 8.0;
+        final base = (u == 'Kb')
+            ? 1e3
+            : (u == 'Mb')
+                ? 1e6
+                : (u == 'Gb')
+                    ? 1e9
+                    : 1e12;
+        final v = b / base;
+        final s = _toFixedTrim(v, opt.precision);
+        return HumanizeResult(v, u, '$s $u');
+      }
+    }
+    final res =
+        _humanizeFastForced(bytes, u, opt.useBits, opt.standard, opt.precision);
+    if (res != null) return res;
+  }
   // Resolve policy -> standard bias unless overridden by caller
   final effectiveStandard = () {
     if (opt.policy == null || opt.policy == UnitPolicy.auto) {
@@ -771,6 +934,353 @@ HumanizeResult humanize(double bytes, HumanizeOptions opt) {
   return HumanizeResult(v, chosenSymbol, text);
 }
 
+// Extremely fast SI-bytes humanizer for the default/common case only.
+// - Units: B, KB, MB, GB, TB, PB (SI base 1000)
+// - Precision: trim trailing zeros and decimal point
+// - Spacer: single space
+HumanizeResult _humanizeFastSi(double bytes, int precision) {
+  const tb = 1e12;
+  const gb = 1e9;
+  const mb = 1e6;
+  const kb = 1e3;
+  String sym;
+  double base;
+  if (bytes >= tb) {
+    base = tb;
+    sym = 'TB';
+  } else if (bytes >= gb) {
+    base = gb;
+    sym = 'GB';
+  } else if (bytes >= mb) {
+    base = mb;
+    sym = 'MB';
+  } else if (bytes >= kb) {
+    base = kb;
+    sym = 'KB';
+  } else {
+    base = 1.0;
+    sym = 'B';
+  }
+  final v = bytes / base;
+  final s = _toFixedTrim(v, precision);
+  final text = '$s $sym';
+  return HumanizeResult(v, sym, text);
+}
+
+HumanizeResult _humanizeFastJedec(double bytes, int precision) {
+  const tb = 1099511627776.0; // 1024^4
+  const gb = 1073741824.0; // 1024^3
+  const mb = 1048576.0; // 1024^2
+  const kb = 1024.0; // 1024^1
+  String sym;
+  double base;
+  if (bytes >= tb) {
+    base = tb;
+    sym = 'TB';
+  } else if (bytes >= gb) {
+    base = gb;
+    sym = 'GB';
+  } else if (bytes >= mb) {
+    base = mb;
+    sym = 'MB';
+  } else if (bytes >= kb) {
+    base = kb;
+    sym = 'KB';
+  } else {
+    base = 1.0;
+    sym = 'B';
+  }
+  final v = bytes / base;
+  final s = _toFixedTrim(v, precision);
+  final text = '$s $sym';
+  return HumanizeResult(v, sym, text);
+}
+
+HumanizeResult _humanizeFastSiBits(double bytes, int precision) {
+  final bits = bytes * 8.0;
+  const tb = 1e12;
+  const gb = 1e9;
+  const mb = 1e6;
+  const kb = 1e3;
+  String sym;
+  double base;
+  if (bits >= tb) {
+    base = tb;
+    sym = 'Tb';
+  } else if (bits >= gb) {
+    base = gb;
+    sym = 'Gb';
+  } else if (bits >= mb) {
+    base = mb;
+    sym = 'Mb';
+  } else if (bits >= kb) {
+    base = kb;
+    sym = 'Kb';
+  } else {
+    base = 1.0;
+    sym = 'b';
+  }
+  final v = bits / base;
+  final s = _toFixedTrim(v, precision);
+  final text = '$s $sym';
+  return HumanizeResult(v, sym, text);
+}
+
+HumanizeResult _humanizeFastIec(double bytes, int precision) {
+  const tib = 1099511627776.0; // 1024^4
+  const gib = 1073741824.0; // 1024^3
+  const mib = 1048576.0; // 1024^2
+  const kib = 1024.0; // 1024^1
+  String sym;
+  double base;
+  if (bytes >= tib) {
+    base = tib;
+    sym = 'TiB';
+  } else if (bytes >= gib) {
+    base = gib;
+    sym = 'GiB';
+  } else if (bytes >= mib) {
+    base = mib;
+    sym = 'MiB';
+  } else if (bytes >= kib) {
+    base = kib;
+    sym = 'KiB';
+  } else {
+    base = 1.0;
+    sym = 'B';
+  }
+  final v = bytes / base;
+  final s = _toFixedTrim(v, precision);
+  final text = '$s $sym';
+  return HumanizeResult(v, sym, text);
+}
+
+HumanizeResult? _humanizeFastForced(double bytes, String unit, bool bits,
+    ByteStandard standard, int precision) {
+  final u = unit;
+  final isBitUnit = u.endsWith('b') && !u.endsWith('B');
+  final up = isBitUnit ? u.substring(0, u.length - 1) : u;
+  final upper = up.toUpperCase();
+  double base;
+  String sym = u;
+  if (bits) {
+    final b = bytes * 8.0;
+    switch (upper) {
+      case 'PB':
+      case 'P':
+        base = 1e15;
+        sym = 'Pb';
+        break;
+      case 'TB':
+      case 'T':
+        base = 1e12;
+        sym = 'Tb';
+        break;
+      case 'GB':
+      case 'G':
+        base = 1e9;
+        sym = 'Gb';
+        break;
+      case 'MB':
+      case 'M':
+        base = 1e6;
+        sym = 'Mb';
+        break;
+      case 'KB':
+      case 'K':
+        base = 1e3;
+        sym = 'Kb';
+        break;
+      case 'B':
+      case '':
+        base = 1.0;
+        sym = 'b';
+        break;
+      default:
+        switch (upper) {
+          case 'KIB':
+            base = 1024.0;
+            sym = 'Kib';
+            break;
+          case 'MIB':
+            base = 1048576.0;
+            sym = 'Mib';
+            break;
+          case 'GIB':
+            base = 1073741824.0;
+            sym = 'Gib';
+            break;
+          case 'TIB':
+            base = 1099511627776.0;
+            sym = 'Tib';
+            break;
+          default:
+            return null;
+        }
+    }
+    final v = b / base;
+    final s = _toFixedTrim(v, precision);
+    return HumanizeResult(v, sym, '$s $sym');
+  } else {
+    // Bytes mapping depends on the selected standard for ambiguous SI-like byte units.
+    switch (standard) {
+      case ByteStandard.si:
+        switch (upper) {
+          case 'QB':
+            base = 1e30;
+            sym = 'QB';
+            break;
+          case 'RB':
+            base = 1e27;
+            sym = 'RB';
+            break;
+          case 'YB':
+            base = 1e24;
+            sym = 'YB';
+            break;
+          case 'ZB':
+            base = 1e21;
+            sym = 'ZB';
+            break;
+          case 'EB':
+            base = 1e18;
+            sym = 'EB';
+            break;
+          case 'PB':
+            base = 1e15;
+            sym = 'PB';
+            break;
+          case 'TB':
+          case 'T':
+            base = 1e12;
+            sym = 'TB';
+            break;
+          case 'GB':
+          case 'G':
+            base = 1e9;
+            sym = 'GB';
+            break;
+          case 'MB':
+          case 'M':
+            base = 1e6;
+            sym = 'MB';
+            break;
+          case 'KB':
+          case 'K':
+            base = 1e3;
+            sym = 'KB';
+            break;
+          case 'B':
+          case '':
+            base = 1.0;
+            sym = 'B';
+            break;
+          default:
+            // Allow IEC explicit symbols under SI request
+            switch (upper) {
+              case 'KIB':
+                base = 1024.0;
+                sym = 'KiB';
+                break;
+              case 'MIB':
+                base = 1048576.0;
+                sym = 'MiB';
+                break;
+              case 'GIB':
+                base = 1073741824.0;
+                sym = 'GiB';
+                break;
+              case 'TIB':
+                base = 1099511627776.0;
+                sym = 'TiB';
+                break;
+              default:
+                return null;
+            }
+        }
+        break;
+      case ByteStandard.jedec:
+        // JEDEC commonly defines KB/MB/GB/TB as 1024^n. Support these; defer others to slow path.
+        switch (upper) {
+          case 'TB':
+          case 'T':
+            base = 1024.0 * 1024 * 1024 * 1024;
+            sym = 'TB';
+            break;
+          case 'GB':
+          case 'G':
+            base = 1024.0 * 1024 * 1024;
+            sym = 'GB';
+            break;
+          case 'MB':
+          case 'M':
+            base = 1024.0 * 1024;
+            sym = 'MB';
+            break;
+          case 'KB':
+          case 'K':
+            base = 1024.0;
+            sym = 'KB';
+            break;
+          case 'B':
+          case '':
+            base = 1.0;
+            sym = 'B';
+            break;
+          default:
+            return null;
+        }
+        break;
+      case ByteStandard.iec:
+        switch (upper) {
+          case 'YIB':
+            base = 1024.0 * 1024 * 1024 * 1024 * 1024 * 1024 * 1024 * 1024;
+            sym = 'YiB';
+            break;
+          case 'ZIB':
+            base = 1024.0 * 1024 * 1024 * 1024 * 1024 * 1024 * 1024;
+            sym = 'ZiB';
+            break;
+          case 'EIB':
+            base = 1024.0 * 1024 * 1024 * 1024 * 1024 * 1024;
+            sym = 'EiB';
+            break;
+          case 'PIB':
+            base = 1024.0 * 1024 * 1024 * 1024 * 1024;
+            sym = 'PiB';
+            break;
+          case 'TIB':
+            base = 1024.0 * 1024 * 1024 * 1024;
+            sym = 'TiB';
+            break;
+          case 'GIB':
+            base = 1024.0 * 1024 * 1024;
+            sym = 'GiB';
+            break;
+          case 'MIB':
+            base = 1024.0 * 1024;
+            sym = 'MiB';
+            break;
+          case 'KIB':
+            base = 1024.0;
+            sym = 'KiB';
+            break;
+          case 'B':
+          case '':
+            base = 1.0;
+            sym = 'B';
+            break;
+          default:
+            return null;
+        }
+        break;
+    }
+    final v = bytes / base;
+    final s = _toFixedTrim(v, precision);
+    return HumanizeResult(v, sym, '$s $sym');
+  }
+}
+
 class MathHelper {
   static double pow10(int p) =>
       p <= 0 ? 1.0 : List.filled(p, 10).fold(1, (a, b) => a * b);
@@ -778,10 +1288,25 @@ class MathHelper {
 
 String _formatNumber(double v, int precision) {
   // Always produce fixed then trim trailing zeros and decimal point
-  final s = v.toStringAsFixed(precision);
-  if (!s.contains('.')) return s;
-  final t = s.replaceFirstMapped(RegExp(r'(\.\d*?)0+$'), (m) => m.group(1)!);
-  return t.endsWith('.') ? t.substring(0, t.length - 1) : t;
+  return _toFixedTrim(v, precision);
+}
+
+String _toFixedTrim(double v, int precision) {
+  // Fast path for integers: avoid fixed formatting altogether
+  final intV = v.truncateToDouble();
+  if (v == intV) return intV.toInt().toString();
+  var s = v.toStringAsFixed(precision);
+  final dot = s.indexOf('.');
+  if (dot == -1) return s;
+  var end = s.length;
+  // Trim trailing zeros
+  while (end > dot + 1 && s.codeUnitAt(end - 1) == 0x30) {
+    end--;
+  }
+  // If only the dot remains, trim it as well
+  if (end == dot + 1) end = dot;
+  if (end == s.length) return s; // nothing trimmed
+  return s.substring(0, end);
 }
 
 double _applyRoundingAndFractionDigits(double v, HumanizeOptions opt) {
@@ -842,9 +1367,13 @@ String _formatNumberAdvanced(double v, HumanizeOptions opt) {
   final max = opt.maximumFractionDigits ?? min;
   var s = v.toStringAsFixed(max);
   if (max > min) {
-    // Trim to minimum
-    final regex = RegExp(r'(\.\d{' + min.toString() + r'})\d+$');
-    s = s.replaceFirstMapped(regex, (m) => m.group(1)!);
+    final dot = s.indexOf('.');
+    if (dot != -1) {
+      final keep = dot + 1 + min;
+      if (s.length > keep) {
+        s = s.substring(0, keep);
+      }
+    }
   }
   if (opt.separator != null && opt.separator != '.') {
     s = s.replaceAll('.', opt.separator!);

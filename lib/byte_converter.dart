@@ -11,6 +11,7 @@ export 'src/byte_stats.dart';
 export 'src/compound_format.dart' show CompoundFormatOptions;
 export 'src/data_rate.dart';
 export 'src/extensions.dart';
+export 'src/fast_format.dart';
 export 'src/format_options.dart';
 export 'src/formatter_snapshot.dart';
 export 'src/interop_adapters.dart';

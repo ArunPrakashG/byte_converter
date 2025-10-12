@@ -1,6 +1,6 @@
 name: byte_converter
 description: High-performance byte and data-rate conversions with BigInt precision, expression parsing, transfer planning, storage profiles, and localization-ready formatting.
-version: 2.4.0
+version: 2.4.1
 homepage: https://github.com/ArunPrakashG/byte_converter
 repository: https://github.com/ArunPrakashG/byte_converter
 issue_tracker: https://github.com/ArunPrakashG/byte_converter/issues
@@ -21,6 +21,7 @@ dependencies:
 dev_dependencies:
   lints: ^3.0.0
   test: ^1.25.0
+  filesize: ^2.0.1
 
 platforms:
   android:
