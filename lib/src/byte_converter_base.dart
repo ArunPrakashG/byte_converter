@@ -2,7 +2,9 @@ import 'dart:math' as math;
 
 import '_parsing.dart';
 import 'byte_enums.dart';
+import 'compound_format.dart';
 import 'format_options.dart';
+import 'localized_unit_names.dart' show localizedUnitName;
 import 'parse_result.dart';
 import 'storage_profile.dart';
 // ignore_for_file: prefer_constructors_over_static_methods
@@ -248,16 +250,21 @@ class ByteConverter implements Comparable<ByteConverter> {
     bool useBits = false,
     int precision = 2,
     bool showSpace = true,
+    bool nonBreakingSpace = false,
     bool fullForm = false,
     Map<String, String>? fullForms,
     String? separator,
     String? spacer,
     int? minimumFractionDigits,
     int? maximumFractionDigits,
+    bool truncate = false,
     bool signed = false,
     String? forceUnit,
     String? locale,
     bool useGrouping = true,
+    SiKSymbolCase siKSymbolCase = SiKSymbolCase.upperK,
+    int? fixedWidth,
+    bool includeSignInWidth = false,
   }) {
     final res = humanize(
       _bytes,
@@ -266,16 +273,21 @@ class ByteConverter implements Comparable<ByteConverter> {
         useBits: useBits,
         precision: precision,
         showSpace: showSpace,
+        nonBreakingSpace: nonBreakingSpace,
         fullForm: fullForm,
         fullForms: fullForms,
         separator: separator,
         spacer: spacer,
         minimumFractionDigits: minimumFractionDigits,
         maximumFractionDigits: maximumFractionDigits,
+        truncate: truncate,
         signed: signed,
         forceUnit: forceUnit,
         locale: locale,
         useGrouping: useGrouping,
+        siKSymbolCase: siKSymbolCase,
+        fixedWidth: fixedWidth,
+        includeSignInWidth: includeSignInWidth,
       ),
     );
     return res.text;
@@ -289,24 +301,40 @@ class ByteConverter implements Comparable<ByteConverter> {
         useBits: !options.useBytes,
         precision: options.precision,
         showSpace: options.showSpace,
+        nonBreakingSpace: options.nonBreakingSpace,
         fullForm: options.fullForm,
         fullForms: options.fullForms,
         separator: options.separator,
         spacer: options.spacer,
         minimumFractionDigits: options.minimumFractionDigits,
         maximumFractionDigits: options.maximumFractionDigits,
+        truncate: options.truncate,
         signed: options.signed,
         forceUnit: options.forceUnit,
         locale: options.locale,
         useGrouping: options.useGrouping,
+        siKSymbolCase: options.siKSymbolCase,
+        fixedWidth: options.fixedWidth,
+        includeSignInWidth: options.includeSignInWidth,
       );
+
+  /// Compound mixed-unit formatting, e.g., "1 GiB 234 MiB 12 KiB".
+  String toHumanReadableCompound(
+      {CompoundFormatOptions options = const CompoundFormatOptions()}) {
+    return formatCompound(_bytes, options);
+  }
 
   /// Parses a string like "1.5 GB", "2GiB", "100 KB", "10 Mbit" into a ByteConverter.
   static ByteConverter parse(
     String input, {
     ByteStandard standard = ByteStandard.si,
+    bool strictBits = false,
   }) {
-    final r = parseSize<SizeUnit>(input: input, standard: standard);
+    final r = parseSize<SizeUnit>(
+      input: input,
+      standard: standard,
+      strictBits: strictBits,
+    );
     return ByteConverter(r.valueInBytes);
   }
 
@@ -314,9 +342,14 @@ class ByteConverter implements Comparable<ByteConverter> {
   static ParseResult<ByteConverter> tryParse(
     String input, {
     ByteStandard standard = ByteStandard.si,
+    bool strictBits = false,
   }) {
     try {
-      final r = parseSize<SizeUnit>(input: input, standard: standard);
+      final r = parseSize<SizeUnit>(
+        input: input,
+        standard: standard,
+        strictBits: strictBits,
+      );
       if (r.valueInBytes.isNaN || r.valueInBytes.isInfinite) {
         throw FormatException('Invalid numeric value in input: $input');
       }
@@ -364,4 +397,150 @@ class ByteConverter implements Comparable<ByteConverter> {
 
   // JSON serialization
   Map<String, dynamic> toJson() => {'bytes': _bytes};
+
+  /// Pattern-based formatter:
+  /// Supported tokens:
+  ///  - 'u': unit symbol (KB, MiB, Mb)
+  ///  - 'U': unit full word (localized when available)
+  /// Numerics use current options (min/max digits, separator/grouping) set via [options].
+  String formatWith(String pattern,
+      {ByteFormatOptions options = const ByteFormatOptions()}) {
+    // Force a single space spacer to reliably split value and unit
+    final res = humanize(
+      _bytes,
+      HumanizeOptions(
+        standard: options.standard,
+        useBits: false,
+        precision: options.precision,
+        showSpace: true,
+        nonBreakingSpace: false,
+        fullForm: false,
+        separator: options.separator,
+        spacer: ' ',
+        minimumFractionDigits: options.minimumFractionDigits,
+        maximumFractionDigits: options.maximumFractionDigits,
+        truncate: options.truncate,
+        signed: options.signed,
+        forceUnit: options.forceUnit,
+        locale: options.locale,
+        useGrouping: options.useGrouping,
+        siKSymbolCase: options.siKSymbolCase,
+        fixedWidth: options.fixedWidth,
+        includeSignInWidth: options.includeSignInWidth,
+      ),
+    );
+    final symbol = res.symbol;
+    // final text = res.text; // not needed after compact computation
+    // Derive numeric part robustly by reformatting with no spacer and forced unit
+    final compact = humanize(
+      _bytes,
+      HumanizeOptions(
+        standard: options.standard,
+        useBits: false,
+        precision: options.precision,
+        showSpace: true,
+        nonBreakingSpace: false,
+        fullForm: false,
+        separator: options.separator,
+        spacer: '',
+        minimumFractionDigits: options.minimumFractionDigits,
+        maximumFractionDigits: options.maximumFractionDigits,
+        truncate: options.truncate,
+        signed: options.signed,
+        forceUnit: symbol,
+        locale: options.locale,
+        useGrouping: options.useGrouping,
+        siKSymbolCase: options.siKSymbolCase,
+        fixedWidth: options.fixedWidth,
+        includeSignInWidth: options.includeSignInWidth,
+      ),
+    ).text;
+    final valuePart = compact.substring(0, compact.length - symbol.length);
+    final unitSymbol = () {
+      // Recompute to respect siKSymbolCase on KB
+      if (symbol == 'KB' && options.siKSymbolCase == SiKSymbolCase.lowerK) {
+        return 'kB';
+      }
+      return symbol;
+    }();
+    String fullWord() {
+      final sym = unitSymbol;
+      final loc = options.locale ?? 'en';
+      return localizedUnitName(sym, locale: loc) ?? unitSymbol;
+    }
+
+    // Replace numeric token greedily to handle patterns like 0.0 or 0##
+    final numericRe = RegExp(r'0[#0\.,]*');
+    var out = pattern.replaceAll('U', fullWord()).replaceAll('u', unitSymbol);
+    // 'S' -> sign: '+', '-', or ' ' (when options.signed is true); else empty
+    final signChar =
+        options.signed ? (_bytes > 0 ? '+' : (_bytes < 0 ? '-' : ' ')) : '';
+    out = out.replaceAll('S', signChar);
+    out = out.replaceAll(numericRe, valuePart);
+    return out;
+  }
+
+  /// Convenience full-words output using current defaults.
+  String toFullWords({ByteFormatOptions options = const ByteFormatOptions()}) {
+    return toHumanReadableAuto(
+      standard: options.standard,
+      useBits: false,
+      precision: options.precision,
+      showSpace: options.showSpace,
+      nonBreakingSpace: options.nonBreakingSpace,
+      fullForm: true,
+      fullForms: options.fullForms,
+      separator: options.separator,
+      spacer: options.spacer,
+      minimumFractionDigits: options.minimumFractionDigits,
+      maximumFractionDigits: options.maximumFractionDigits,
+      truncate: options.truncate,
+      signed: options.signed,
+      forceUnit: options.forceUnit,
+      locale: options.locale,
+      useGrouping: options.useGrouping,
+      siKSymbolCase: options.siKSymbolCase,
+    );
+  }
+
+  /// Returns the largest whole-number unit and its value for this size under the given standard.
+  /// Example: 1536 B -> { value: 1, symbol: 'KB' } (SI), or 1 KiB (IEC).
+  ({int value, String symbol}) largestWholeNumber(
+      {ByteStandard standard = ByteStandard.si, bool useBytes = true}) {
+    final opt = HumanizeOptions(standard: standard, useBits: !useBytes);
+    const thresholdsSi = [1e12, 1e9, 1e6, 1e3];
+    const symbolsSi = ['TB', 'GB', 'MB', 'KB'];
+    const thresholdsIec = [
+      1024.0 * 1024 * 1024 * 1024,
+      1024.0 * 1024 * 1024,
+      1024.0 * 1024,
+      1024.0,
+    ];
+    const symbolsIec = ['TiB', 'GiB', 'MiB', 'KiB'];
+    final isBits = !useBytes;
+    final value = isBits ? _bits.toDouble() : _bytes;
+    List<double> th;
+    List<String> sy;
+    switch (opt.standard) {
+      case ByteStandard.si:
+        th = thresholdsSi;
+        sy = symbolsSi;
+        break;
+      case ByteStandard.jedec:
+        th = thresholdsIec;
+        sy = ['TB', 'GB', 'MB', 'KB'];
+        break;
+      case ByteStandard.iec:
+        th = thresholdsIec;
+        sy = symbolsIec;
+        break;
+    }
+    for (var i = 0; i < th.length; i++) {
+      final unitValue = value / th[i];
+      if (unitValue.floorToDouble() >= 1) {
+        return (value: unitValue.floor(), symbol: sy[i]);
+      }
+    }
+    return (value: value.floor().toInt(), symbol: isBits ? 'b' : 'B');
+  }
 }

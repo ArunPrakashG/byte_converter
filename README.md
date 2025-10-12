@@ -14,13 +14,15 @@ Fast, dependable byte and data-rate conversions for Dart with fluent APIs and op
 - 📦 Storage profiles with configurable alignment, slack inspection, and round-to-profile helpers
 - 📊 Aggregate metrics through `ByteStats`/`BigByteStats` for sums, averages, percentiles, and histograms
 - 🌍 Localization-ready humanize output with custom format options, optional `intl` integration, and built-in unit names for English (including en_IN), German, French, Hindi, Spanish, Portuguese, Japanese, Chinese, and Russian
+- ✍️ Formatting ergonomics: fixed-width numeric alignment (`fixedWidth`), sign-aware padding (`includeSignInWidth`), non‑breaking space (`nonBreakingSpace`), truncation (`truncate`), SI k‑case styling (KB vs kB), and pattern formatting with tokens `u`/`U`/`S`
+- 🧰 CLI goodies: `--pattern`, `--per` for rate time base, `--fixed-width`, `--si-lower-k`, `--nbsp`, `--truncate`, and `--strict-bits`
 - 🧾 FormatterSnapshot generators that keep README/wiki matrices and snapshot tests in sync
 
 ## 📦 Installation
 
 ```yaml
 dependencies:
-  byte_converter: ^2.3.1
+  byte_converter: ^2.4.0
 ```
 
 ## 💡 Quick Example
@@ -78,6 +80,34 @@ The complete guide lives in the wiki:
 - FormatterSnapshot helpers keep README tables, wiki docs, and snapshot tests aligned
 - Wiki recipes cover CLI usage, monitoring dashboards, and BigInt-heavy workloads
 
+- `byte_converter_lite.dart` opt-in provides lightweight locale-aware number formatting (no intl dependency) for common locales. See [wiki: Formatting – Lightweight number formatter](https://github.com/ArunPrakashG/byte_converter/wiki/Formatting#lightweight-number-formatter-no-intl).
+
+## 🧠 Advanced capabilities
+
+We also support advanced features—see the wiki for details and examples:
+
+- Transfer planning with schedules, throttle, and pause/resume
+- Locale-aware parsing (parseLocalized) and tree-shakable unit name maps
+- OS parsing adapters (Linux ls -lh, Windows short sizes)
+- Streaming quantiles (P²) for p50/p95/p99
+
+Wiki links:
+
+- Usage: https://github.com/ArunPrakashG/byte_converter/wiki/Usage
+- Parsing: https://github.com/ArunPrakashG/byte_converter/wiki/Parsing
+- Data Rate: https://github.com/ArunPrakashG/byte_converter/wiki/Data-Rate
+- API Reference: https://github.com/ArunPrakashG/byte_converter/wiki/API-Reference
+
+## 📊 Benchmarks
+
+Microbenchmarks and a P² vs t‑digest comparison are available in `tool/bench/bench.dart`.
+
+Run locally:
+
+```sh
+dart run tool/bench/bench.dart
+```
+
 ## 🤝 Contributing
 
 Issues and pull requests are welcome. Check the [issue tracker](https://github.com/ArunPrakashG/byte_converter/issues) to report bugs or request features.
@@ -85,7 +115,3 @@ Issues and pull requests are welcome. Check the [issue tracker](https://github.c
 ## 📄 License
 
 Released under the [MIT License](LICENSE).
-
-```
-
-```

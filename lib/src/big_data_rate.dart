@@ -81,7 +81,7 @@ class BigDataRate implements Comparable<BigDataRate> {
     return '${result.text}/s';
   }
 
-  DataRate toDataRate() => DataRate.bitsPerSecond(bytesPerSecond);
+  DataRate toDataRate() => DataRate.bitsPerSecond(bitsPerSecond.toDouble());
 
   static BigDataRate parse(
     String input, {

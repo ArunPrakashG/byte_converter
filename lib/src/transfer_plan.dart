@@ -21,6 +21,11 @@ class TransferPlan {
   final DataRate rate;
   final ByteConverter? _transferredBytes;
   final Duration? _elapsed;
+  bool _paused = false;
+  double _throttle = 1.0; // 0..1 multiplier
+
+  // Variable schedule support
+  final List<RateWindow> _schedule = [];
 
   ByteConverter get transferredBytes {
     final existing = _transferredBytes;
@@ -61,14 +66,16 @@ class TransferPlan {
   }
 
   Duration? get estimatedTotalDuration {
-    if (rate.bitsPerSecond == 0) return null;
-    final totalSeconds = totalBytes.bytes / rate.bytesPerSecond;
+    final bps = _effectiveBitsPerSecond();
+    if (bps == 0) return null;
+    final totalSeconds = (totalBytes.bytes * 8.0) / bps;
     return Duration(microseconds: (totalSeconds * 1e6).round());
   }
 
   Duration? get remainingDuration {
-    if (rate.bitsPerSecond == 0) return null;
-    final remainingSeconds = remainingBytes.bytes / rate.bytesPerSecond;
+    final bps = _effectiveBitsPerSecond();
+    if (bps == 0) return null;
+    final remainingSeconds = (remainingBytes.bytes * 8.0) / bps;
     return Duration(microseconds: (remainingSeconds * 1e6).ceil());
   }
 
@@ -100,6 +107,9 @@ class TransferPlan {
       transferredBytes: transferred ?? _transferredBytes,
       elapsed: elapsed ?? _elapsed,
     );
+    plan._schedule.addAll(_schedule);
+    plan._paused = _paused;
+    plan._throttle = _throttle;
     return plan;
   }
 
@@ -132,5 +142,51 @@ extension DataRatePlanning on DataRate {
     final seconds = window.inMicroseconds / 1e6;
     final bytes = bytesPerSecond * seconds;
     return ByteConverter(bytes);
+  }
+}
+
+/// Represents a window of rate over a time span, for planning variable schedules.
+class RateWindow {
+  RateWindow({required this.rate, required this.duration});
+  final DataRate rate;
+  final Duration duration; // duration > 0
+}
+
+extension TransferPlanAdvanced on TransferPlan {
+  void addRateWindow(RateWindow window) {
+    if (window.duration <= Duration.zero) {
+      throw ArgumentError('RateWindow duration must be positive');
+    }
+    _schedule.add(window);
+  }
+
+  void clearSchedule() => _schedule.clear();
+
+  void pause() => _paused = true;
+  void resume() => _paused = false;
+
+  void setThrottle(double factor) {
+    if (factor.isNaN || factor.isInfinite || factor < 0 || factor > 1) {
+      throw ArgumentError('Throttle must be between 0 and 1');
+    }
+    _throttle = factor;
+  }
+
+  double _effectiveBitsPerSecond() {
+    if (_paused) return 0.0;
+    // If schedule exists, compute weighted average bps across windows, then apply throttle.
+    if (_schedule.isNotEmpty) {
+      var totalMicros = 0;
+      var bits = 0.0;
+      for (final w in _schedule) {
+        final micros = w.duration.inMicroseconds;
+        totalMicros += micros;
+        bits += w.rate.bitsPerSecond * (micros / 1e6);
+      }
+      if (totalMicros == 0) return 0.0;
+      final avgBps = bits / (totalMicros / 1e6);
+      return avgBps * _throttle;
+    }
+    return rate.bitsPerSecond * _throttle;
   }
 }

@@ -1,6 +1,6 @@
 name: byte_converter
 description: High-performance byte and data-rate conversions with BigInt precision, expression parsing, transfer planning, storage profiles, and localization-ready formatting.
-version: 2.3.1
+version: 2.4.0
 homepage: https://github.com/ArunPrakashG/byte_converter
 repository: https://github.com/ArunPrakashG/byte_converter
 issue_tracker: https://github.com/ArunPrakashG/byte_converter/issues
@@ -29,3 +29,6 @@ platforms:
   macos:
   web:
   windows:
+
+executables:
+  bytec: bin/bytec.dart

@@ -3,8 +3,10 @@ import 'dart:math' as math;
 import '_parsing.dart';
 import 'byte_converter_base.dart';
 import 'byte_enums.dart';
+import 'compound_format.dart';
 // ignore_for_file: non_constant_identifier_names, avoid_equals_and_hash_code_on_mutable_classes, prefer_constructors_over_static_methods
 import 'format_options.dart';
+import 'localized_unit_names.dart' show localizedUnitName;
 import 'parse_result.dart';
 import 'storage_profile.dart';
 
@@ -62,6 +64,8 @@ class BigByteConverter implements Comparable<BigByteConverter> {
   static final _EB = _PB * BigInt.from(1000);
   static final _ZB = _EB * BigInt.from(1000);
   static final _YB = _ZB * BigInt.from(1000);
+  static final _RB = _YB * BigInt.from(1000); // Ronnabyte 10^27
+  static final _QB = _RB * BigInt.from(1000); // Quettabyte 10^30
 
   static final _KIB = BigInt.from(1024);
   static final _MIB = _KIB * BigInt.from(1024);
@@ -123,6 +127,8 @@ class BigByteConverter implements Comparable<BigByteConverter> {
   double get exaBytes => _bytes.toDouble() / _EB.toDouble();
   double get zettaBytes => _bytes.toDouble() / _ZB.toDouble();
   double get yottaBytes => _bytes.toDouble() / _YB.toDouble();
+  double get ronnaBytes => _bytes.toDouble() / _RB.toDouble();
+  double get quettaBytes => _bytes.toDouble() / _QB.toDouble();
 
   // Binary unit getters
   double get kibiBytes => _bytes.toDouble() / _KIB.toDouble();
@@ -143,6 +149,8 @@ class BigByteConverter implements Comparable<BigByteConverter> {
   BigInt get exaBytesExact => _bytes ~/ _EB;
   BigInt get zettaBytesExact => _bytes ~/ _ZB;
   BigInt get yottaBytesExact => _bytes ~/ _YB;
+  BigInt get ronnaBytesExact => _bytes ~/ _RB;
+  BigInt get quettaBytesExact => _bytes ~/ _QB;
 
   BigInt get kibiBytesExact => _bytes ~/ _KIB;
   BigInt get mebiBytesExact => _bytes ~/ _MIB;
@@ -231,7 +239,12 @@ class BigByteConverter implements Comparable<BigByteConverter> {
     if (diff <= BigInt.zero) {
       return BigByteConverter(BigInt.zero);
     }
-    return BigByteConverter(diff);
+    // Return slack expressed as an aligned quantity so that it satisfies alignment checks
+    // (i.e., a multiple of the requested block size).
+    final blockSize = BigInt.from(profile.blockSizeBytes(alignment));
+    final slackBlocks = (diff + blockSize - BigInt.one) ~/ blockSize;
+    final alignedSlackBytes = slackBlocks * blockSize;
+    return BigByteConverter(alignedSlackBytes);
   }
 
   bool isAligned(
@@ -258,16 +271,21 @@ class BigByteConverter implements Comparable<BigByteConverter> {
     bool useBits = false,
     int precision = 2,
     bool showSpace = true,
+    bool nonBreakingSpace = false,
     bool fullForm = false,
     Map<String, String>? fullForms,
     String? separator,
     String? spacer,
     int? minimumFractionDigits,
     int? maximumFractionDigits,
+    bool truncate = false,
     bool signed = false,
     String? forceUnit,
     String? locale,
     bool useGrouping = true,
+    SiKSymbolCase siKSymbolCase = SiKSymbolCase.upperK,
+    int? fixedWidth,
+    bool includeSignInWidth = false,
   }) {
     final res = humanize(
       _bytes.toDouble(),
@@ -276,16 +294,21 @@ class BigByteConverter implements Comparable<BigByteConverter> {
         useBits: useBits,
         precision: precision,
         showSpace: showSpace,
+        nonBreakingSpace: nonBreakingSpace,
         fullForm: fullForm,
         fullForms: fullForms,
         separator: separator,
         spacer: spacer,
         minimumFractionDigits: minimumFractionDigits,
         maximumFractionDigits: maximumFractionDigits,
+        truncate: truncate,
         signed: signed,
         forceUnit: forceUnit,
         locale: locale,
         useGrouping: useGrouping,
+        siKSymbolCase: siKSymbolCase,
+        fixedWidth: fixedWidth,
+        includeSignInWidth: includeSignInWidth,
       ),
     );
     return res.text;
@@ -298,19 +321,32 @@ class BigByteConverter implements Comparable<BigByteConverter> {
         useBits: !options.useBytes,
         precision: options.precision,
         showSpace: options.showSpace,
+        nonBreakingSpace: options.nonBreakingSpace,
         fullForm: options.fullForm,
         fullForms: options.fullForms,
         separator: options.separator,
         spacer: options.spacer,
         minimumFractionDigits: options.minimumFractionDigits,
         maximumFractionDigits: options.maximumFractionDigits,
+        truncate: options.truncate,
         signed: options.signed,
         forceUnit: options.forceUnit,
         locale: options.locale,
         useGrouping: options.useGrouping,
+        siKSymbolCase: options.siKSymbolCase,
+        fixedWidth: options.fixedWidth,
+        includeSignInWidth: options.includeSignInWidth,
       );
 
+  /// Compound mixed-unit formatting for Big values.
+  String toHumanReadableCompound(
+      {CompoundFormatOptions options = const CompoundFormatOptions()}) {
+    return formatCompound(_bytes.toDouble(), options);
+  }
+
   double _convertToUnit(BigSizeUnit unit) => switch (unit) {
+        BigSizeUnit.QB => quettaBytes,
+        BigSizeUnit.RB => ronnaBytes,
         BigSizeUnit.YB => yottaBytes,
         BigSizeUnit.ZB => zettaBytes,
         BigSizeUnit.EB => exaBytes,
@@ -323,6 +359,8 @@ class BigByteConverter implements Comparable<BigByteConverter> {
       };
 
   String _getUnitString(BigSizeUnit unit) => switch (unit) {
+        BigSizeUnit.QB => ' QB',
+        BigSizeUnit.RB => ' RB',
         BigSizeUnit.YB => ' YB',
         BigSizeUnit.ZB => ' ZB',
         BigSizeUnit.EB => ' EB',
@@ -335,6 +373,8 @@ class BigByteConverter implements Comparable<BigByteConverter> {
       };
 
   BigSizeUnit _selectBestUnit() {
+    if (_bytes >= _QB) return BigSizeUnit.QB;
+    if (_bytes >= _RB) return BigSizeUnit.RB;
     if (_bytes >= _YB) return BigSizeUnit.YB;
     if (_bytes >= _ZB) return BigSizeUnit.ZB;
     if (_bytes >= _EB) return BigSizeUnit.EB;
@@ -379,14 +419,205 @@ class BigByteConverter implements Comparable<BigByteConverter> {
     return ByteConverter(_bytes.toDouble());
   }
 
+  String formatWith(String pattern,
+      {ByteFormatOptions options = const ByteFormatOptions()}) {
+    final res = humanize(
+      _bytes.toDouble(),
+      HumanizeOptions(
+        standard: options.standard,
+        useBits: false,
+        precision: options.precision,
+        showSpace: true,
+        nonBreakingSpace: false,
+        fullForm: false,
+        separator: options.separator,
+        spacer: ' ',
+        minimumFractionDigits: options.minimumFractionDigits,
+        maximumFractionDigits: options.maximumFractionDigits,
+        truncate: options.truncate,
+        signed: options.signed,
+        forceUnit: options.forceUnit,
+        locale: options.locale,
+        useGrouping: options.useGrouping,
+        siKSymbolCase: options.siKSymbolCase,
+        fixedWidth: options.fixedWidth,
+        includeSignInWidth: options.includeSignInWidth,
+      ),
+    );
+    final symbol = res.symbol;
+    // Derive value by reformatting with no spacer and forced unit
+    final compact = humanize(
+      _bytes.toDouble(),
+      HumanizeOptions(
+        standard: options.standard,
+        useBits: false,
+        precision: options.precision,
+        showSpace: true,
+        nonBreakingSpace: false,
+        fullForm: false,
+        separator: options.separator,
+        spacer: '',
+        minimumFractionDigits: options.minimumFractionDigits,
+        maximumFractionDigits: options.maximumFractionDigits,
+        truncate: options.truncate,
+        signed: options.signed,
+        forceUnit: symbol,
+        locale: options.locale,
+        useGrouping: options.useGrouping,
+        siKSymbolCase: options.siKSymbolCase,
+        fixedWidth: options.fixedWidth,
+        includeSignInWidth: options.includeSignInWidth,
+      ),
+    ).text;
+    final valuePart = compact.substring(0, compact.length - symbol.length);
+    final unitSymbol = () {
+      if (symbol == 'KB' && options.siKSymbolCase == SiKSymbolCase.lowerK) {
+        return 'kB';
+      }
+      return symbol;
+    }();
+    String fullWord() {
+      final sym = unitSymbol;
+      final loc = options.locale ?? 'en';
+      return localizedUnitName(sym, locale: loc) ?? unitSymbol;
+    }
+
+    final numericRe = RegExp(r'0[#0\.,]*');
+    var out = pattern.replaceAll('U', fullWord()).replaceAll('u', unitSymbol);
+    final signChar = options.signed
+        ? (_bytes > BigInt.zero ? '+' : (_bytes < BigInt.zero ? '-' : ' '))
+        : '';
+    out = out.replaceAll('S', signChar);
+    out = out.replaceAll(numericRe, valuePart);
+    return out;
+  }
+
+  String toFullWords({ByteFormatOptions options = const ByteFormatOptions()}) {
+    return toHumanReadableAuto(
+      standard: options.standard,
+      useBits: false,
+      precision: options.precision,
+      showSpace: options.showSpace,
+      nonBreakingSpace: options.nonBreakingSpace,
+      fullForm: true,
+      fullForms: options.fullForms,
+      separator: options.separator,
+      spacer: options.spacer,
+      minimumFractionDigits: options.minimumFractionDigits,
+      maximumFractionDigits: options.maximumFractionDigits,
+      truncate: options.truncate,
+      signed: options.signed,
+      forceUnit: options.forceUnit,
+      locale: options.locale,
+      useGrouping: options.useGrouping,
+      siKSymbolCase: options.siKSymbolCase,
+    );
+  }
+
+  ({int value, String symbol}) largestWholeNumber(
+      {ByteStandard standard = ByteStandard.si, bool useBytes = true}) {
+    return toByteConverter()
+        .largestWholeNumber(standard: standard, useBytes: useBytes);
+  }
+
   /// Parses a size string into BigByteConverter using the given standard.
   /// If the parsed number is fractional, rounding is applied as per mode.
   static BigByteConverter parse(
     String input, {
     ByteStandard standard = ByteStandard.si,
     RoundingMode rounding = RoundingMode.round,
+    bool strictBits = false,
   }) {
-    final r = parseSizeBig(input: input, standard: standard);
+    // Fast-path: integer numeric literal with known large units -> use BigInt math to avoid precision loss
+    final simple = RegExp(r'^\s*([+-]?\d+)\s*([A-Za-z]+)?\s*$');
+    final m = simple.firstMatch(input);
+    if (m != null) {
+      final numStr = m.group(1)!;
+      final unitStr = (m.group(2) ?? '').trim();
+      try {
+        final n = BigInt.parse(numStr);
+        if (unitStr.isEmpty || unitStr.toUpperCase() == 'B') {
+          return BigByteConverter(n);
+        }
+        final u = unitStr;
+        final isBit = u.isNotEmpty && u[u.length - 1] == 'b' && u != 'B';
+        final upper = u.toUpperCase();
+        // Bytes base maps (SI/IEC/JEDEC)
+        final Map<String, BigInt> byteBase = {
+          // SI
+          'KB': BigInt.from(10).pow(3),
+          'MB': BigInt.from(10).pow(6),
+          'GB': BigInt.from(10).pow(9),
+          'TB': BigInt.from(10).pow(12),
+          'PB': BigInt.from(10).pow(15),
+          'EB': BigInt.from(10).pow(18),
+          'ZB': BigInt.from(10).pow(21),
+          'YB': BigInt.from(10).pow(24),
+          'RB': BigInt.from(10).pow(27),
+          'QB': BigInt.from(10).pow(30),
+          // IEC
+          'KIB': BigInt.from(1024).pow(1),
+          'MIB': BigInt.from(1024).pow(2),
+          'GIB': BigInt.from(1024).pow(3),
+          'TIB': BigInt.from(1024).pow(4),
+          'PIB': BigInt.from(1024).pow(5),
+          'EIB': BigInt.from(1024).pow(6),
+          'ZIB': BigInt.from(1024).pow(7),
+          'YIB': BigInt.from(1024).pow(8),
+        };
+        // JEDEC (KB/MB/GB/TB as 1024^n). Only when standard == jedec or explicit expectation.
+        final Map<String, BigInt> jedecBase = {
+          'KB': BigInt.from(1024).pow(1),
+          'MB': BigInt.from(1024).pow(2),
+          'GB': BigInt.from(1024).pow(3),
+          'TB': BigInt.from(1024).pow(4),
+        };
+        // Bits base maps (SI/IEC)
+        final Map<String, BigInt> bitBase = {
+          'KB': BigInt.from(10).pow(3) ~/ BigInt.from(8),
+          'MB': BigInt.from(10).pow(6) ~/ BigInt.from(8),
+          'GB': BigInt.from(10).pow(9) ~/ BigInt.from(8),
+          'TB': BigInt.from(10).pow(12) ~/ BigInt.from(8),
+          'PB': BigInt.from(10).pow(15) ~/ BigInt.from(8),
+          'EB': BigInt.from(10).pow(18) ~/ BigInt.from(8),
+          'ZB': BigInt.from(10).pow(21) ~/ BigInt.from(8),
+          'YB': BigInt.from(10).pow(24) ~/ BigInt.from(8),
+          'RB': BigInt.from(10).pow(27) ~/ BigInt.from(8),
+          'QB': BigInt.from(10).pow(30) ~/ BigInt.from(8),
+          'KIB': BigInt.from(1024).pow(1) ~/ BigInt.from(8),
+          'MIB': BigInt.from(1024).pow(2) ~/ BigInt.from(8),
+          'GIB': BigInt.from(1024).pow(3) ~/ BigInt.from(8),
+          'TIB': BigInt.from(1024).pow(4) ~/ BigInt.from(8),
+          'PIB': BigInt.from(1024).pow(5) ~/ BigInt.from(8),
+          'EIB': BigInt.from(1024).pow(6) ~/ BigInt.from(8),
+          'ZIB': BigInt.from(1024).pow(7) ~/ BigInt.from(8),
+          'YIB': BigInt.from(1024).pow(8) ~/ BigInt.from(8),
+        };
+
+        BigInt? base;
+        if (isBit) {
+          final key = upper.endsWith('B')
+              ? upper.substring(0, upper.length - 1)
+              : upper;
+          base = bitBase[key];
+        } else {
+          base = byteBase[upper];
+          if (base == null && standard == ByteStandard.jedec) {
+            base = jedecBase[upper];
+          }
+        }
+
+        if (base != null) {
+          return BigByteConverter(n * base);
+        }
+      } catch (_) {
+        // fall through to generic path
+      }
+    }
+
+    // Generic path with double math and rounding
+    final r =
+        parseSizeBig(input: input, standard: standard, strictBits: strictBits);
     final bytes = r.valueInBytes;
     BigInt result;
     switch (rounding) {
@@ -408,9 +639,11 @@ class BigByteConverter implements Comparable<BigByteConverter> {
     String input, {
     ByteStandard standard = ByteStandard.si,
     RoundingMode rounding = RoundingMode.round,
+    bool strictBits = false,
   }) {
     try {
-      final r = parseSizeBig(input: input, standard: standard);
+      final r = parseSizeBig(
+          input: input, standard: standard, strictBits: strictBits);
       if (r.valueInBytes.isNaN || r.valueInBytes.isInfinite) {
         throw FormatException('Invalid numeric value in input: $input');
       }

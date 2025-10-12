@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.4.0
+
+### Added / Improved
+
+- Fixed-width alignment for the numeric portion via `ByteFormatOptions.fixedWidth` (also supported in `DataRate.toHumanReadableAuto`).
+- `includeSignInWidth` option to count the sign when padding with `fixedWidth` for tighter column alignment.
+- Pattern formatting token `S` to explicitly render the sign ('+', '-', or space when `signed=true`).
+- CLI: `bytec` gains `--fixed-width n` in `format` and `rate` commands; help updated. `rate` also exposes `--per` for choosing time base.
+- Docs: expanded formatting guide and data-rate examples to cover NBSP, truncation, SI k-case, fixed width, and pattern `S`.
+
+### Notes
+
+- Default SI kilo symbol remains `KB` for backward compatibility; opt into `kB` using `siKSymbolCase: lowerK` or `--si-lower-k` in CLI.
+
 ## 2.3.1
 
 ### Fixed

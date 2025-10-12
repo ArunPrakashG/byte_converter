@@ -16,6 +16,7 @@ void main() {
       ),
       const ByteFormatOptions(useBytes: true, signed: true),
       const ByteFormatOptions(useBytes: true, forceUnit: 'KB'),
+      const ByteFormatOptions(useBytes: true, forceUnit: 'KB', fixedWidth: 6),
     ];
 
     test('ByteConverter snapshots', () {
@@ -32,6 +33,15 @@ void main() {
       );
       expect(snapshot.toMarkdownTable(),
           contains('| sample | option | formatted |'));
+      // Ensure fixed width option influences output length for forced KB
+      final fixedRow =
+          matrix.firstWhere((row) => row[1].contains('fixedWidth=6'));
+      final text = fixedRow[2];
+      final lastSpace = text.lastIndexOf(' ');
+      final lastNbsp = text.lastIndexOf('\u00A0');
+      final sep = (lastSpace > lastNbsp) ? lastSpace : lastNbsp;
+      final numericPart = sep >= 0 ? text.substring(0, sep) : text;
+      expect(numericPart.length >= 6, isTrue);
     });
   });
 
@@ -53,6 +63,7 @@ void main() {
       ),
       const ByteFormatOptions(signed: true),
       const ByteFormatOptions(forceUnit: 'Mb'),
+      const ByteFormatOptions(forceUnit: 'Mb', fixedWidth: 5),
     ];
 
     test('DataRate snapshots', () {
@@ -68,6 +79,15 @@ void main() {
         isTrue,
       );
       expect(snapshot.toCsv(), contains('sample,option,formatted'));
+      // Verify rate fixed width
+      final fixedRow =
+          matrix.firstWhere((row) => row[1].contains('fixedWidth=5'));
+      final text = fixedRow[2];
+      final lastSpace = text.lastIndexOf(' ');
+      final lastNbsp = text.lastIndexOf('\u00A0');
+      final sep = (lastSpace > lastNbsp) ? lastSpace : lastNbsp;
+      final numericPart = sep >= 0 ? text.substring(0, sep) : text;
+      expect(numericPart.length >= 5, isTrue);
     });
   });
 }

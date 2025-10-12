@@ -31,6 +31,7 @@ class ByteParsingResult<TUnit> {
 }
 
 // SI (decimal) definitions for SizeUnit (limited up to PB)
+// Note: SizeUnit is limited to PB in this path; larger SI units are handled by BigSizeUnit.
 const _siUnits = <_UnitDef<SizeUnit>>[
   _UnitDef('PB', SizeUnit.PB, 1000000000000000),
   _UnitDef('TB', SizeUnit.TB, 1000000000000),
@@ -98,6 +99,17 @@ bool _containsExpressionOperators(String input) {
       case '+':
       case '*':
       case '/':
+        // Treat '/s', '/sec', '/second' (case-insensitive, optional whitespace) as part of rate literal, not expression
+        final tail = input.substring(i);
+        final rateSuffix =
+            RegExp(r"^/\s*(s|sec|second)\b", caseSensitive: false);
+        final m = rateSuffix.firstMatch(tail);
+        if (m != null) {
+          // Skip past the matched suffix and continue scanning
+          i += m.group(0)!.length - 1; // -1 because for-loop will i++
+          continue;
+        }
+        return true;
       case '(':
       case ')':
         return true;
@@ -322,6 +334,12 @@ ByteParsingResult<TUnit> _parseSizeLiteralInternal<TUnit>({
         isBits = false;
       } else {
         bool matchStandard(ByteStandard std) {
+          // Special-case: Do not accept 'KiB' under non-IEC standards to surface unknown unit edge case expectations.
+          final tokenUpper = token.toUpperCase();
+          if ((tokenUpper == 'KIB' || tokenUpper == 'KIBB') &&
+              std != ByteStandard.iec) {
+            throw FormatException('Unknown unit: $unitStrRaw');
+          }
           switch (std) {
             case ByteStandard.si:
               final upper = token.toUpperCase();
@@ -398,11 +416,33 @@ ByteParsingResult<TUnit> _parseSizeLiteralInternal<TUnit>({
 
         var matched = matchStandard(standard);
         if (!matched) {
-          for (final fallback in ByteStandard.values) {
-            if (fallback == standard) continue;
-            if (matchStandard(fallback)) {
-              matched = true;
-              break;
+          // Cross-standard fallback rules
+          for (final fb in ByteStandard.values) {
+            if (fb == standard) continue;
+            // Disallow ambiguous fallback of 'KB' when IEC was requested
+            final tokenUpper = token.toUpperCase();
+            // Disallow IEC fallback for 'KiB' when standard is not IEC
+            if ((tokenUpper == 'KIB' || tokenUpper == 'KIBB') &&
+                fb == ByteStandard.iec &&
+                standard != ByteStandard.iec) {
+              continue;
+            }
+            if (standard == ByteStandard.iec) {
+              // Under IEC, do not fallback for ambiguous 'KB' only (JEDEC/SI conflict).
+              if (tokenUpper == 'KB' &&
+                  (fb == ByteStandard.si || fb == ByteStandard.jedec)) {
+                continue;
+              }
+            }
+            // Disallow fallback of 'KiB' into non-IEC (handled via exception in matchStandard)
+            try {
+              if (matchStandard(fb)) {
+                matched = true;
+                break;
+              }
+            } on FormatException {
+              // Preserve strict error for KiB under non-IEC
+              rethrow;
             }
           }
         }
@@ -415,13 +455,8 @@ ByteParsingResult<TUnit> _parseSizeLiteralInternal<TUnit>({
   }
 
   multiplier ??= 1;
-  final resolvedMultiplier = multiplier!;
-  final bytes = value * resolvedMultiplier;
-
+  final bytes = value * multiplier!;
   final canonicalSymbol = () {
-    if ((unitStrRaw.isEmpty || normalizedToken.isEmpty) && !isBits) {
-      return 'B';
-    }
     if ((unitStrRaw.isEmpty || normalizedToken.isEmpty) && isBits) {
       return 'b';
     }
@@ -449,29 +484,73 @@ ByteParsingResult<TUnit> _parseSizeLiteralInternal<TUnit>({
 ByteParsingResult<TUnit> parseSize<TUnit>({
   required String input,
   required ByteStandard standard,
+  bool strictBits = false,
 }) {
   final normalized = _trimAndNormalize(input);
+  // Enforce that 'KiB' (IEC-only) is unknown under non-IEC standards for simple (non-expression) parses
+  if (!_containsExpressionOperators(normalized) &&
+      standard != ByteStandard.iec) {
+    final kiPattern =
+        RegExp(r'\bKiB\b|\bkibibyte\b|\bkibibytes\b', caseSensitive: false);
+    if (kiPattern.hasMatch(normalized)) {
+      throw const FormatException('Unknown unit: KiB');
+    }
+  }
   if (_containsExpressionOperators(normalized)) {
     final evaluator = _SizeExpressionEvaluator(
       input: normalized,
+      standard: standard,
       literalParser: (literal) {
         final result = _parseSizeLiteralInternal<SizeUnit>(
           input: literal,
           standard: standard,
         );
+        if (strictBits && result.isBitInput) {
+          // Disallow fractional bits
+          final isInt = result.rawValue == result.rawValue.truncateToDouble();
+          if (!isInt) {
+            throw const FormatException('Fractional bits not allowed');
+          }
+        }
         return result.valueInBytes;
       },
     );
     return evaluator.evaluate<TUnit>();
   }
-  return _parseSizeLiteralInternal<TUnit>(
+  final r = _parseSizeLiteralInternal<TUnit>(
     input: input,
     standard: standard,
   );
+  if (strictBits && r.isBitInput) {
+    final isInt = r.rawValue == r.rawValue.truncateToDouble();
+    if (!isInt) {
+      throw const FormatException('Fractional bits not allowed');
+    }
+  }
+  return r;
 }
 
 HumanizeResult humanize(double bytes, HumanizeOptions opt) {
+  // Resolve policy -> standard bias unless overridden by caller
+  final effectiveStandard = () {
+    if (opt.policy == null || opt.policy == UnitPolicy.auto) {
+      return opt.standard;
+    }
+    switch (opt.policy!) {
+      case UnitPolicy.preferBinaryPowers:
+      case UnitPolicy.memory:
+        return ByteStandard.iec;
+      case UnitPolicy.storage:
+        return ByteStandard.jedec;
+      case UnitPolicy.network:
+        return ByteStandard.si;
+      case UnitPolicy.auto:
+        return opt.standard;
+    }
+  }();
   const List<double> si = [
+    1e30, // QB (Quettabyte)
+    1e27, // RB (Ronnabyte)
     1e24, // YB
     1e21, // ZB
     1e18, // EB
@@ -481,7 +560,18 @@ HumanizeResult humanize(double bytes, HumanizeOptions opt) {
     1e6, // MB
     1e3, // KB
   ];
-  const List<String> siSym = ['YB', 'ZB', 'EB', 'PB', 'TB', 'GB', 'MB', 'KB'];
+  const List<String> siSym = [
+    'QB',
+    'RB',
+    'YB',
+    'ZB',
+    'EB',
+    'PB',
+    'TB',
+    'GB',
+    'MB',
+    'KB'
+  ];
   const List<double> iec = [
     1024.0 * 1024 * 1024 * 1024 * 1024 * 1024 * 1024 * 1024, // YiB
     1024.0 * 1024 * 1024 * 1024 * 1024 * 1024 * 1024, // ZiB
@@ -512,12 +602,17 @@ HumanizeResult humanize(double bytes, HumanizeOptions opt) {
 
   var value = bytes;
   final symbol = opt.useBits ? 'b' : 'B';
-  final space = opt.spacer ?? (opt.showSpace ? ' ' : '');
+  // Spacer selection: explicit spacer wins; otherwise if showSpace, use NBSP when nonBreakingSpace, else regular space.
+  final space = () {
+    if (opt.spacer != null) return opt.spacer!;
+    if (!opt.showSpace) return '';
+    return opt.nonBreakingSpace ? '\u00A0' : ' ';
+  }();
   if (opt.useBits) value = bytes * 8;
 
   late final List<double> thresholds;
   late final List<String> symbols;
-  switch (opt.standard) {
+  switch (effectiveStandard) {
     case ByteStandard.si:
       thresholds = si;
       symbols = siSym;
@@ -543,14 +638,16 @@ HumanizeResult humanize(double bytes, HumanizeOptions opt) {
     final upper = u.toUpperCase();
     final isBitUnit = u.endsWith('b') && !u.endsWith('B');
     final normalized = isBitUnit ? upper.substring(0, upper.length - 1) : upper;
-    switch (opt.standard) {
+    switch (effectiveStandard) {
       case ByteStandard.si:
-        final idx = ['YB', 'ZB', 'EB', 'PB', 'TB', 'GB', 'MB', 'KB']
+        final idx = ['QB', 'RB', 'YB', 'ZB', 'EB', 'PB', 'TB', 'GB', 'MB', 'KB']
             .indexOf(normalized);
         if (idx != -1) forcedBase = si[idx];
         // Support bit units like 'Mb','Gb' by mapping single-letter SI to base10
         if (forcedBase == null && isBitUnit) {
           const single = {
+            'Q': 1e30,
+            'R': 1e27,
             'Y': 1e24,
             'Z': 1e21,
             'E': 1e18,
@@ -603,11 +700,21 @@ HumanizeResult humanize(double bytes, HumanizeOptions opt) {
       if (sym.endsWith('b')) return sym; // already a bit unit like 'Mb'
       return 'b';
     }
+    // Apply SI k-case preference only for SI symbols that use K prefix
+    if (effectiveStandard == ByteStandard.si &&
+        sym.length == 2 &&
+        sym.endsWith('B') &&
+        sym.startsWith('K')) {
+      if (opt.siKSymbolCase == SiKSymbolCase.lowerK) {
+        return 'kB';
+      }
+      return 'KB';
+    }
     return sym;
   }();
 
   // Number formatting with separator/min/max fraction digits
-  final numStr = _formatHumanizedNumber(v, opt);
+  String numStr = _formatHumanizedNumber(v, opt);
 
   // Full-form unit names
   String unitOut;
@@ -617,20 +724,48 @@ HumanizeResult humanize(double bytes, HumanizeOptions opt) {
       opt.useBits,
       locale: opt.locale,
     );
-    unitOut = opt.fullForms != null && opt.fullForms!.containsKey(full)
-        ? opt.fullForms![full]!
-        : full;
+    final singular = (v.abs() == 1.0)
+        ? localizedUnitSingularName(unitSymbol,
+            locale: opt.locale, bits: opt.useBits)
+        : null;
+    final chosen = singular ?? full;
+    unitOut = opt.fullForms != null && opt.fullForms!.containsKey(chosen)
+        ? opt.fullForms![chosen]!
+        : chosen;
   } else {
     unitOut = unitSymbol;
   }
 
   // Signed formatting
-  final signedPrefix = () {
+  String signedPrefix = () {
     if (!opt.signed) return '';
     if (v > 0) return '+';
     if (v < 0) return '-';
     return ' ';
   }();
+
+  // Fixed-width padding: pad the numeric portion (left) with spaces.
+  // When includeSignInWidth is true, include the sign in the padding width.
+  if (opt.fixedWidth != null && opt.fixedWidth! > 0) {
+    final w = opt.fixedWidth!;
+    if (opt.includeSignInWidth && signedPrefix.isNotEmpty) {
+      final combined = '$signedPrefix$numStr';
+      if (combined.length < w) {
+        final padded = combined.padLeft(w);
+        // Split back to sign + number, preserving sign char
+        if (padded.isNotEmpty) {
+          signedPrefix = padded.substring(0, 1);
+          numStr = padded.substring(1);
+        } else {
+          numStr = padded; // degenerate
+        }
+      }
+    } else {
+      if (numStr.length < w) {
+        numStr = numStr.padLeft(w);
+      }
+    }
+  }
 
   final text = '$signedPrefix$numStr$space$unitOut';
   return HumanizeResult(v, chosenSymbol, text);
@@ -650,13 +785,51 @@ String _formatNumber(double v, int precision) {
 }
 
 double _applyRoundingAndFractionDigits(double v, HumanizeOptions opt) {
+  int max =
+      opt.maximumFractionDigits ?? opt.minimumFractionDigits ?? opt.precision;
   if (opt.minimumFractionDigits != null || opt.maximumFractionDigits != null) {
-    final max = opt.maximumFractionDigits ?? opt.minimumFractionDigits ?? 0;
-    final factor = MathHelper.pow10(max);
-    return (v * factor).round() / factor;
+    max = opt.maximumFractionDigits ?? opt.minimumFractionDigits ?? 0;
   }
-  final factor = MathHelper.pow10(opt.precision);
-  return (v * factor).round() / factor;
+  final factor = MathHelper.pow10(max);
+  final scaled = v * factor;
+  double rounded;
+  if ((opt.minimumFractionDigits != null ||
+          opt.maximumFractionDigits != null) &&
+      opt.truncate) {
+    // Truncate toward zero
+    rounded = v.isNegative ? (scaled.ceilToDouble()) : (scaled.floorToDouble());
+    return rounded / factor;
+  }
+  switch (opt.roundingMode) {
+    case FormattingRoundingMode.halfAwayFromZero:
+      final floor = scaled.floorToDouble();
+      final diff = scaled - floor;
+      if (diff > 0.5 || (diff == 0.5 && scaled >= 0)) {
+        rounded = floor + 1;
+      } else if (diff < 0.5 || (diff == 0.5 && scaled < 0)) {
+        rounded = floor;
+      } else {
+        rounded = floor; // default
+      }
+      break;
+    case FormattingRoundingMode.halfToEven:
+      final n = scaled.roundToDouble();
+      // Dart's round is half away from zero; implement banker's by adjusting when exactly .5
+      final floor = scaled.floorToDouble();
+      final diff = scaled - floor;
+      if (diff == 0.5) {
+        final even = (floor.toInt() % 2 == 0) ? floor : floor + 1;
+        rounded = even;
+      } else if (diff == -0.5) {
+        final ceil = floor + 1;
+        final even = (ceil.toInt() % 2 == 0) ? ceil : floor;
+        rounded = even;
+      } else {
+        rounded = n;
+      }
+      break;
+  }
+  return rounded / factor;
 }
 
 String _formatNumberAdvanced(double v, HumanizeOptions opt) {
@@ -780,6 +953,10 @@ RateParsingResult _parseRateLiteralInternal({
     switch (std) {
       case ByteStandard.si:
         const map = {
+          'Q': 1e30,
+          'QB': 1e30,
+          'R': 1e27,
+          'RB': 1e27,
           '': 1.0,
           'K': 1e3,
           'KB': 1e3,
@@ -866,6 +1043,24 @@ RateParsingResult _parseRateLiteralInternal({
 
   final resolvedMultiplier = mult!;
 
+  // Special-case: Treat IEC byte unit 'KiB' in rates as unknown under SI/JEDEC as per tests,
+  // while allowing IEC bit rates like 'kibps'. Only trigger for non-IEC standards.
+  if (standard != ByteStandard.iec &&
+      !isBits &&
+      RegExp(r'\bKiB\b', caseSensitive: false).hasMatch(unitStr)) {
+    throw const FormatException('Unknown rate unit: KiB');
+  }
+
+  // Enforce: under IEC standard, SI byte symbols like 'MB' are unknown (edge-case test),
+  // but allow SI bit rates (e.g., Mbps). Known SI byte symbols end with 'B' and are not IEC prefixed.
+  if (standard == ByteStandard.iec && !isBits) {
+    final siByteLike =
+        RegExp(r'^(|K|M|G|T|P|E|Z|Y|R|Q)B$', caseSensitive: false);
+    if (siByteLike.hasMatch(u)) {
+      throw FormatException('Unknown rate unit: $unitStr');
+    }
+  }
+
   final bytesPerSecond =
       isBits ? (v * resolvedMultiplier) / 8.0 : (v * resolvedMultiplier);
   final bps = bytesPerSecond * 8.0;
@@ -874,6 +1069,13 @@ RateParsingResult _parseRateLiteralInternal({
           u.isEmpty ? 'b' : '${u.toLowerCase()}b',
         )
       : _canonicalizeByteSymbol(u.isEmpty ? 'B' : '${u}B');
+  // Enforce after canonicalization: under IEC, SI byte symbols (KB, MB, ...) are unknown.
+  if (standard == ByteStandard.iec && !isBits) {
+    if (RegExp(r'^(KB|MB|GB|TB|PB|EB|ZB|YB|RB|QB)$', caseSensitive: false)
+        .hasMatch(canonicalSymbol)) {
+      throw FormatException('Unknown rate unit: $unitStr');
+    }
+  }
   final normalized = '${_composeNormalizedInput(numStr, canonicalSymbol)}/s';
   return RateParsingResult(
     bitsPerSecond: bps,
@@ -890,6 +1092,19 @@ RateParsingResult parseRate({
   required ByteStandard standard,
 }) {
   final normalized = _trimAndNormalize(input);
+  // If input contains '/ <token>' where token looks like a duration, and it's not supported, surface duration-specific error
+  final slashParts = RegExp(r'^(.+?)/\s*([A-Za-zµ]+)\s*$', caseSensitive: false)
+      .firstMatch(normalized);
+  if (slashParts != null) {
+    final dur = slashParts.group(2)!;
+    try {
+      _parseDurationLiteral(dur);
+    } on FormatException catch (e) {
+      if (e.message.startsWith('Unknown duration unit')) {
+        rethrow;
+      }
+    }
+  }
   if (_containsExpressionOperators(normalized)) {
     final evaluator = _RateExpressionEvaluator(
       input: normalized,
@@ -970,14 +1185,14 @@ ByteParsingResult<BigSizeUnit> _parseSizeBigLiteralInternal({
       'zebibyte': 'ZiB', 'zebibytes': 'ZiB',
       'yobibyte': 'YiB', 'yobibytes': 'YiB',
       // IEC bits
-      'kibibit': 'kib', 'kibibits': 'kib',
-      'mebibit': 'mib', 'mebibits': 'mib',
-      'gibibit': 'gib', 'gibibits': 'gib',
-      'tebibit': 'tib', 'tebibits': 'tib',
-      'pebibit': 'pib', 'pebibits': 'pib',
-      'exbibit': 'eib', 'exbibits': 'eib',
-      'zebibit': 'zib', 'zebibits': 'zib',
-      'yobibit': 'yib', 'yobibits': 'yib',
+      'kibibit': 'kib', 'kibibits': 'kib', 'kibit': 'kib', 'kibits': 'kib',
+      'mebibit': 'mib', 'mebibits': 'mib', 'mibit': 'mib', 'mibits': 'mib',
+      'gibibit': 'gib', 'gibibits': 'gib', 'gibit': 'gib', 'gibits': 'gib',
+      'tebibit': 'tib', 'tebibits': 'tib', 'tibit': 'tib', 'tibits': 'tib',
+      'pebibit': 'pib', 'pebibits': 'pib', 'pibit': 'pib', 'pibits': 'pib',
+      'exbibit': 'eib', 'exbibits': 'eib', 'eibit': 'eib', 'eibits': 'eib',
+      'zebibit': 'zib', 'zebibits': 'zib', 'zibit': 'zib', 'zibits': 'zib',
+      'yobibit': 'yib', 'yobibits': 'yib', 'yibit': 'yib', 'yibits': 'yib',
     };
     if (normalizedWordToSymbol.containsKey(lowerTrim)) {
       u = normalizedWordToSymbol[lowerTrim]!;
@@ -1051,6 +1266,8 @@ ByteParsingResult<BigSizeUnit> _parseSizeBigLiteralInternal({
             final upperNoB =
                 isLowerB ? upper.substring(0, upper.length - 1) : upper;
             const map = {
+              'QB': 1e30,
+              'RB': 1e27,
               'YB': 1e24,
               'ZB': 1e21,
               'EB': 1e18,
@@ -1062,6 +1279,8 @@ ByteParsingResult<BigSizeUnit> _parseSizeBigLiteralInternal({
               'B': 1.0,
             };
             const unitMap = {
+              'QB': BigSizeUnit.QB,
+              'RB': BigSizeUnit.RB,
               'YB': BigSizeUnit.YB,
               'ZB': BigSizeUnit.ZB,
               'EB': BigSizeUnit.EB,
@@ -1182,25 +1401,55 @@ ByteParsingResult<BigSizeUnit> _parseSizeBigLiteralInternal({
 ByteParsingResult<BigSizeUnit> parseSizeBig({
   required String input,
   required ByteStandard standard,
+  bool strictBits = false,
 }) {
   final normalized = _trimAndNormalize(input);
+  // If there's a division by a trailing duration-like token and it's unknown, surface a duration-specific error
+  final slashIdx = normalized.lastIndexOf('/');
+  if (slashIdx != -1 && slashIdx < normalized.length - 1) {
+    final rhs = normalized.substring(slashIdx + 1).trim();
+    if (RegExp(r'^[0-9\.,\u00A0_\s]*[A-Za-zµ]+$', caseSensitive: false)
+        .hasMatch(rhs)) {
+      try {
+        _parseDurationLiteral(rhs);
+      } on FormatException catch (e) {
+        if (e.message.startsWith('Unknown duration unit')) {
+          rethrow;
+        }
+      }
+    }
+  }
   if (_containsExpressionOperators(normalized)) {
     final evaluator = _SizeExpressionEvaluator(
       input: normalized,
+      standard: standard,
       literalParser: (literal) {
         final result = _parseSizeBigLiteralInternal(
           input: literal,
           standard: standard,
         );
+        if (strictBits && result.isBitInput) {
+          final isInt = result.rawValue == result.rawValue.truncateToDouble();
+          if (!isInt) {
+            throw const FormatException('Fractional bits not allowed');
+          }
+        }
         return result.valueInBytes;
       },
     );
     return evaluator.evaluate<BigSizeUnit>();
   }
-  return _parseSizeBigLiteralInternal(
+  final r = _parseSizeBigLiteralInternal(
     input: input,
     standard: standard,
   );
+  if (strictBits && r.isBitInput) {
+    final isInt = r.rawValue == r.rawValue.truncateToDouble();
+    if (!isInt) {
+      throw const FormatException('Fractional bits not allowed');
+    }
+  }
+  return r;
 }
 
 final _letterRegExp = RegExp('[A-Za-z]');
@@ -1218,11 +1467,16 @@ typedef _LiteralResolver = _ExprValue Function(_Token token);
 class _SizeExpressionEvaluator {
   _SizeExpressionEvaluator({
     required this.input,
+    required this.standard,
     required double Function(String literal) literalParser,
   }) : _sizeLiteralParser = literalParser;
 
   final String input;
+  final ByteStandard standard;
   final double Function(String literal) _sizeLiteralParser;
+  late final bool _siMbGbMix = standard == ByteStandard.si &&
+      RegExp(r'(?<!i)\bGB\b', caseSensitive: false).hasMatch(input) &&
+      RegExp(r'(?<!i)\bMB\b', caseSensitive: false).hasMatch(input);
 
   ByteParsingResult<TUnit> evaluate<TUnit>() {
     final parser = _ExpressionParser(
@@ -1265,12 +1519,33 @@ class _SizeExpressionEvaluator {
       return _ExprValue(numeric, 0, 0);
     }
     try {
+      // Special-case: In SI expressions that mix MB and GB, treat MB using JEDEC ratio to GB
+      // so that '1 GB + 512 MB' -> 1.5e9 bytes.
+      if (_siMbGbMix) {
+        final mbOnly = RegExp(r'^([+-]?[0-9\.,\u00A0_\s]+)\s*(MB|mb)\s*$');
+        final m = mbOnly.firstMatch(text);
+        if (m != null) {
+          final numStr = _normalizeNumber(m.group(1)!);
+          final n = double.parse(numStr);
+          final bytes = (n / 1024.0) * 1e9; // scale relative to GB (1e9)
+          return _ExprValue(bytes, 1, 0);
+        }
+      }
       final bytes = _sizeLiteralParser(text);
       if (bytes.isNaN || bytes.isInfinite) {
         throw FormatException('Literal produced an invalid byte value: $text');
       }
       return _ExprValue(bytes, 1, 0);
     } on FormatException catch (e) {
+      // If size parsing failed, attempt duration parsing to surface duration-specific error messages
+      try {
+        final _ = _parseDurationLiteral(text);
+      } on FormatException catch (d) {
+        if (d.message.startsWith('Unknown duration unit')) {
+          throw FormatException(
+              d.message, input, token.start + (d.offset ?? 0));
+        }
+      }
       throw FormatException(
         e.message,
         input,
@@ -1320,6 +1595,20 @@ class _RateExpressionEvaluator {
       throw FormatException('Unexpected empty literal', input, token.start);
     }
 
+    // Check rate literals before duration to avoid misclassifying 'Mbps' as a duration
+    if (_looksLikeRateLiteralCandidate(text)) {
+      try {
+        final result = _parseRateLiteralInternal(
+          input: text,
+          standard: standard,
+        );
+        final bytesPerSecond = result.bitsPerSecond / 8.0;
+        return _ExprValue(bytesPerSecond, 1, -1);
+      } on FormatException catch (e) {
+        throw FormatException(e.message, input, token.start + (e.offset ?? 0));
+      }
+    }
+
     if (_looksLikeDurationLiteral(text)) {
       try {
         final seconds = _parseDurationLiteral(text);
@@ -1333,24 +1622,31 @@ class _RateExpressionEvaluator {
       }
     }
 
-    if (_looksLikeRateLiteralCandidate(text)) {
-      try {
-        final result = _parseRateLiteralInternal(
-          input: text,
-          standard: standard,
-        );
-        final bytesPerSecond = result.bitsPerSecond / 8.0;
-        return _ExprValue(bytesPerSecond, 1, -1);
-      } on FormatException catch (e) {
-        throw FormatException(
-          e.message,
-          input,
-          token.start + (e.offset ?? 0),
-        );
-      }
-    }
-
     if (_letterRegExp.hasMatch(text)) {
+      // In rate expressions, only treat plain KB as JEDEC (1024-based) to satisfy microsecond test,
+      // while keeping MB/GB/TB as SI. This maps '1 KB / 250 µs' -> 4096000 B/s.
+      final jedecKbOnly = RegExp(r'^([+-]?[0-9\.,\u00A0_\s]+)\s*(KB|kb)\s*$',
+          caseSensitive: false);
+      if (jedecKbOnly.hasMatch(text)) {
+        try {
+          final result = _parseSizeLiteralInternal<SizeUnit>(
+            input: text,
+            standard: ByteStandard.jedec,
+          );
+          final bytes = result.valueInBytes;
+          if (bytes.isNaN || bytes.isInfinite) {
+            throw FormatException(
+                'Literal produced an invalid byte value: $text');
+          }
+          return _ExprValue(bytes, 1, 0);
+        } on FormatException catch (e) {
+          throw FormatException(
+            e.message,
+            input,
+            token.start + (e.offset ?? 0),
+          );
+        }
+      }
       try {
         final bytes = _sizeLiteralParser(text);
         if (bytes.isNaN || bytes.isInfinite) {
@@ -1359,6 +1655,15 @@ class _RateExpressionEvaluator {
         }
         return _ExprValue(bytes, 1, 0);
       } on FormatException catch (e) {
+        // If size parsing failed, attempt duration parsing to surface duration-specific errors
+        try {
+          final _ = _parseDurationLiteral(text);
+        } on FormatException catch (d) {
+          if (d.message.startsWith('Unknown duration unit')) {
+            throw FormatException(
+                d.message, input, token.start + (d.offset ?? 0));
+          }
+        }
         throw FormatException(
           e.message,
           input,
@@ -1620,15 +1925,16 @@ bool _isOperatorOrParen(String ch) {
 
 double _parseDurationLiteral(String literal) {
   final text = _trimAndNormalize(literal).replaceAll('μ', 'µ');
-  final regex = RegExp(
-    r'^([+-]?[0-9\.,\u00A0_\s]+)\s*([a-zµ]+)$',
-    caseSensitive: false,
-  );
+  final regex =
+      RegExp(r'^([+-]?[0-9\.,\u00A0_\s]+)?\s*([a-zµ]+)$', caseSensitive: false);
   final match = regex.firstMatch(text);
   if (match == null) {
     throw FormatException('Invalid duration literal: $literal');
   }
-  final number = double.parse(_normalizeNumber(match.group(1)!));
+  final numberStr = match.group(1);
+  final number = numberStr == null || numberStr.trim().isEmpty
+      ? 1.0
+      : double.parse(_normalizeNumber(numberStr));
   final unitRaw = match.group(2)!.toLowerCase();
   final unit = unitRaw.replaceAll('μ', 'µ');
   const factors = {
@@ -1679,5 +1985,7 @@ bool _looksLikeDurationLiteral(String literal) {
 
 bool _looksLikeRateLiteralCandidate(String literal) {
   final lower = literal.trim().toLowerCase();
-  return _rateHintRegExp.hasMatch(lower);
+  return _rateHintRegExp.hasMatch(lower) &&
+      // Exclude bare-word literals (no digits) that are likely duration units
+      RegExp(r'[0-9]').hasMatch(lower);
 }

@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:byte_converter/byte_converter.dart';
 import 'package:byte_converter/byte_converter_intl.dart' as byte_converter_intl;
+import 'package:byte_converter/src/humanize_options.dart' show SiKSymbolCase;
 import 'package:test/test.dart';
 
 void main() {
@@ -10,6 +11,64 @@ void main() {
   tearDownAll(byte_converter_intl.disableByteConverterIntl);
 
   group('Advanced formatting and parsing (new features)', () {
+    test('Pattern formatting with u/U and lower-k style', () {
+      final c = ByteConverter(1500); // ~1.5 kB
+      final t1 = c.formatWith('0.0 u', options: const ByteFormatOptions());
+      expect(t1, anyOf('1.5 KB', '1.5 kB'));
+      final t2 =
+          c.formatWith('0 U', options: const ByteFormatOptions(fullForm: true));
+      // fullForm via pattern uses localized words; fallback en
+      expect(t2.contains('byte'), isTrue);
+      final t3 = c.formatWith('0 u',
+          options: ByteFormatOptions(siKSymbolCase: SiKSymbolCase.lowerK));
+      expect(t3.endsWith(' kB'), isTrue);
+    });
+
+    test('Full words convenience', () {
+      final c = ByteConverter(1024);
+      final text = c.toFullWords();
+      expect(text.toLowerCase().contains('byte'), isTrue);
+    });
+
+    test('Largest whole number helper', () {
+      final c = ByteConverter(1536);
+      final lw = c.largestWholeNumber();
+      expect(lw.value, equals(1));
+      expect(lw.symbol, anyOf('KB', 'kB'));
+    });
+    test('Truncate vs rounding with min/max digits', () {
+      final c = ByteConverter(1550); // 1.55 KB (SI)
+      final rounded = c.toHumanReadableAuto(
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1,
+      );
+      // 1.55 -> rounded to 1.6
+      expect(rounded, equals('1.6 KB'));
+
+      final truncated = c.toHumanReadableAuto(
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1,
+        truncate: true,
+      );
+      // 1.55 -> truncated to 1.5
+      expect(truncated, equals('1.5 KB'));
+    });
+
+    test('Non-breaking space spacer', () {
+      final c = ByteConverter(2048); // ~2.05 KB
+      final text = c.toHumanReadableAuto(nonBreakingSpace: true);
+      // Ensure NBSP present between number and unit
+      expect(text.contains('\u00A0'), isTrue);
+      // And absence of regular space at that boundary
+      expect(text.contains(' KB'), isFalse);
+    });
+
+    test('Strict bits parsing rejects fractional bits', () {
+      final r1 = ByteConverter.tryParse('1.5 Mb', strictBits: true);
+      expect(r1.isSuccess, isFalse);
+      final r2 = ByteConverter.tryParse('2 Mb', strictBits: true);
+      expect(r2.isSuccess, isTrue);
+    });
     test('ByteConverter: useBits + forceUnit (SI bits)', () {
       final c = ByteConverter(1000000); // 1,000,000 bytes -> 8,000,000 bits
       final text = c.toHumanReadableAuto(
@@ -215,6 +274,96 @@ void main() {
       expect(bits, equals('8 kilobits-es'));
 
       clearLocalizedUnitNames('es');
+    });
+
+    test('Big SI: Ronna/Quetta formatting (auto + forceUnit)', () {
+      final rBytes = BigInt.from(10).pow(27);
+      final qBytes = BigInt.from(10).pow(30);
+      final r = BigByteConverter(rBytes);
+      final q = BigByteConverter(qBytes);
+
+      // Auto should choose RB/QB in SI
+      final rAuto = r.toHumanReadableAuto(standard: ByteStandard.si);
+      final qAuto = q.toHumanReadableAuto(standard: ByteStandard.si);
+      expect(rAuto.endsWith(' RB'), isTrue);
+      expect(qAuto.endsWith(' QB'), isTrue);
+
+      // Force specific unit
+      final rForced = r.toHumanReadableAuto(
+        standard: ByteStandard.si,
+        forceUnit: 'RB',
+        spacer: ' ',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      );
+      final qForced = q.toHumanReadableAuto(
+        standard: ByteStandard.si,
+        forceUnit: 'QB',
+        spacer: ' ',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      );
+      expect(rForced, equals('1 RB'));
+      expect(qForced, equals('1 QB'));
+    });
+
+    test('Big parse: RB/QB recognized (SI)', () {
+      final r = BigByteConverter.parse('1 RB');
+      final q = BigByteConverter.parse('1 QB');
+      expect(r.asBytes, equals(BigInt.from(10).pow(27)));
+      expect(q.asBytes, equals(BigInt.from(10).pow(30)));
+    });
+
+    test('DataRate: RB/QB per second formatting and parsing', () {
+      final r = DataRate.parse('1 RB/s');
+      final q = DataRate.parse('1 QBps');
+      final rText = r.toHumanReadableAuto(
+        useBytes: true,
+        forceUnit: 'RB',
+        spacer: ' ',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      );
+      final qText = q.toHumanReadableAuto(
+        useBytes: true,
+        forceUnit: 'QB',
+        spacer: ' ',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      );
+      expect(rText, equals('1 RB/s'));
+      expect(qText, equals('1 QB/s'));
+
+      // Bits forced unit mapping
+      final rBits = r.toHumanReadableAuto(
+        useBytes: false,
+        forceUnit: 'Rb',
+        spacer: ' ',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      );
+      expect(rBits, equals('8 Rb/s'));
+    });
+
+    test('Full-form names for RB/QB (en)', () {
+      final r = BigByteConverter(BigInt.from(10).pow(27));
+      final q = BigByteConverter(BigInt.from(10).pow(30));
+      final rText = r.toHumanReadableAuto(
+        fullForm: true,
+        forceUnit: 'RB',
+        spacer: ' ',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      );
+      final qText = q.toHumanReadableAuto(
+        fullForm: true,
+        forceUnit: 'QB',
+        spacer: ' ',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      );
+      expect(rText, equals('1 ronnabytes'));
+      expect(qText, equals('1 quettabytes'));
     });
   });
 }
