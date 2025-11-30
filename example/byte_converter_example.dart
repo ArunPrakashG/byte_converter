@@ -1,99 +1,97 @@
 import 'package:byte_converter/byte_converter.dart';
 
 void main() {
-  // Basic usage
-  final fileSize = ByteConverter(1500000);
-  print('File size: ${fileSize.toHumanReadable(SizeUnit.MB)}'); // 1.5 MB
+  // ─────────────────────────────────────────────────────────────────────────
+  // Basic usage with namespace API (recommended)
+  // ─────────────────────────────────────────────────────────────────────────
 
-  // Different units
-  final download = ByteConverter.fromGigaBytes(2.5);
-  print('Download size: $download'); // Automatically formats to best unit
+  final fileSize = ByteConverter.fromMegaBytes(1536); // 1.5 GB
 
-  // Binary units
-  final ram = ByteConverter.fromGibiBytes(16);
-  print('RAM: ${ram.toHumanReadable(SizeUnit.GB)} (${ram.gibiBytes} GiB)');
+  // Display namespace - multiple formatting options
+  print('Auto: ${fileSize.display.auto()}'); // "1.5 GB"
+  print('Fuzzy: ${fileSize.display.fuzzy()}'); // "about 1.5 GB"
+  print('GNU: ${fileSize.display.gnu()}'); // "1.5G"
+  print('Scientific: ${fileSize.display.scientific()}'); // "1.5 × 10⁹ B"
+  print('Compound: ${fileSize.display.compound()}'); // "1 GB 536 MB"
 
-  // Math operations
-  final file1 = ByteConverter.fromMegaBytes(100);
-  final file2 = ByteConverter.fromMegaBytes(50);
-  final total = file1 + file2;
-  print('Total size: $total');
+  // Storage namespace - disk alignment
+  print('Sectors: ${fileSize.storage.sectors}'); // 512-byte sectors
+  print('Blocks: ${fileSize.storage.blocks}'); // 4KB blocks
 
-  // Comparisons
-  if (file1 > file2) {
-    print('File 1 is larger');
+  // Rate namespace - network calculations
+  final rate = DataRate.megaBitsPerSecond(100);
+  print('Transfer time: ${fileSize.rate.transferTime(rate)}'); // Duration
+
+  // Compare namespace - size comparisons
+  final total = ByteConverter.fromGigaBytes(10);
+  print('Percent of total: ${fileSize.compare.percentOf(total)}%'); // 15.0%
+  print('Progress: ${fileSize.compare.percentageBar(total)}'); // "██░░░░░░░░"
+
+  // Accessibility namespace - screen reader support
+  print('Screen reader: ${fileSize.accessibility.screenReader()}');
+
+  // Output namespace - serialization
+  print('As Map: ${fileSize.output.asMap}');
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Parsing - flexible string input
+  // ─────────────────────────────────────────────────────────────────────────
+
+  final parsed = ByteConverter.parse('2 GiB + 512 MiB'); // Expression support!
+  print(
+      '\nParsed expression: ${parsed.display.auto(standard: ByteStandard.iec)}');
+
+  // Safe parsing with diagnostics
+  final result = ByteConverter.tryParse('invalid');
+  if (!result.isSuccess) {
+    print('Parse error: ${result.error}');
   }
 
-  // Custom precision
-  final precise = ByteConverter.fromKiloBytes(1.23456);
-  print('With 2 decimals: ${precise.toHumanReadable(SizeUnit.KB)}');
-  print(
-    'With 4 decimals: ${precise.toHumanReadable(SizeUnit.KB, precision: 4)}',
-  );
+  // ─────────────────────────────────────────────────────────────────────────
+  // Data rates
+  // ─────────────────────────────────────────────────────────────────────────
 
-  // JSON serialization
-  final data = ByteConverter.fromMegaBytes(100);
-  final json = data.toJson();
-  final restored = ByteConverter.fromJson(json);
-  print('Restored from JSON: $restored');
+  print('\n--- Data Rates ---');
+  final download = DataRate.parse('100 Mbps');
+  print('Rate: ${download.toHumanReadableAuto()}');
+  print('As bytes: ${download.toHumanReadableAuto(useBytes: true)}');
 
-  // Unit conversions
-  final mixed = ByteConverter(1024 * 1024); // 1 MiB
-  print('As MB: ${mixed.megaBytes} MB');
-  print('As MiB: ${mixed.mebiBytes} MiB');
+  // Transfer planning
+  final plan = fileSize.estimateTransfer(download);
+  print('ETA: ${plan.etaString()}');
 
-  print('\n--- BigInt Examples for Very Large Data ---');
+  // ─────────────────────────────────────────────────────────────────────────
+  // Math operations
+  // ─────────────────────────────────────────────────────────────────────────
 
-  // BigInt usage for very large numbers
+  print('\n--- Math Operations ---');
+  final file1 = ByteConverter.fromMegaBytes(100);
+  final file2 = ByteConverter.fromMegaBytes(50);
+  print('Sum: ${(file1 + file2).display.auto()}');
+  print('Diff: ${(file1 - file2).display.auto()}');
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // BigInt for massive values (YB, ZB scale)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  print('\n--- BigInt Examples ---');
   final dataCenter = BigByteConverter.fromExaBytes(BigInt.from(5));
-  print('Data center storage: $dataCenter');
+  print('Data center: ${dataCenter.toHumanReadableAuto()}');
 
-  // Precise calculations with BigInt
-  final preciseCalculation =
-      BigInt.parse('123456789012345678901234567890').bytes;
-  print('Ultra-precise value: ${preciseCalculation.asBytes} bytes');
+  final cosmic = BigByteConverter.fromYottaBytes(BigInt.from(1));
+  print('Cosmic scale: ${cosmic.toHumanReadableAuto()}');
 
-  // Large unit support (exabytes, zettabytes, yottabytes)
-  final cosmicData = BigByteConverter.fromYottaBytes(BigInt.from(1));
-  print('Cosmic scale data: $cosmicData');
+  // BigInt math
+  final bigTotal = BigByteConverter.fromTeraBytes(BigInt.from(500)) +
+      BigByteConverter.fromTeraBytes(BigInt.from(300));
+  print('Large total: ${bigTotal.toHumanReadableAuto()}');
 
-  // BigInt math operations
-  final bigFile1 = BigByteConverter.fromTeraBytes(BigInt.from(500));
-  final bigFile2 = BigByteConverter.fromTeraBytes(BigInt.from(300));
-  final bigTotal = bigFile1 + bigFile2;
-  print('Large files total: $bigTotal');
+  // ─────────────────────────────────────────────────────────────────────────
+  // Extensions on int/double
+  // ─────────────────────────────────────────────────────────────────────────
 
-  // Conversion between BigInt and regular converters
-  final normalConverter = ByteConverter(1048576); // 1 MB
-  final bigConverter = BigByteConverter.fromByteConverter(normalConverter);
-  print('Converted to BigInt: ${bigConverter.asBytes} bytes');
-
-  // Convert back (may lose precision for very large numbers)
-  final backToNormal = bigConverter.toByteConverter();
-  print('Converted back: ${backToNormal.asBytes()} bytes');
-
-  // Exact arithmetic with BigInt
-  final exactGB = BigInt.from(1000000000).bytes; // Exactly 1 GB
-  print('Exact GB: ${exactGB.gigaBytesExact} GB (exact)');
-  print('Approx GB: ${exactGB.gigaBytes} GB (double precision)');
-
-  // BigInt extensions
-  final fromExtension = BigInt.from(1024).kibiBytes;
-  print('From BigInt extension: $fromExtension');
-
-  // Very large number serialization
-  final hugeNumber =
-      BigByteConverter(BigInt.parse('999999999999999999999999999'));
-  final hugeJson = hugeNumber.toJson();
-  final restoredHuge = BigByteConverter.fromJson(hugeJson);
-  print('Huge number preserved: ${restoredHuge.asBytes}');
-
-  // Parsing strings
-  final parsed = ByteConverter.parse('1.5 GB');
-  print('Parsed: $parsed');
-
-  // Data rate parsing and formatting
-  final rate = DataRate.parse('100 Mbps');
-  print('Rate: ${rate.toHumanReadableAuto()}');
-  print('Rate (bytes): ${rate.toHumanReadableAuto(useBytes: true)}');
+  print('\n--- Extensions ---');
+  print('1.5.gigaBytes: ${1.5.gigaBytes.display.auto()}');
+  print(
+      '1024.mebiBytes: ${1024.mebiBytes.display.auto(standard: ByteStandard.iec)}');
 }

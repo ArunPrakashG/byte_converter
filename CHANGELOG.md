@@ -1,5 +1,72 @@
 # Changelog
 
+## 2.5.0
+
+### Added - Namespace-Based API
+
+- **New `storage` namespace**: Access storage alignment utilities via `size.storage.sectors`, `size.storage.blocks`, `size.storage.roundToBlock()`, etc.
+- **New `rate` namespace**: Access network rate utilities via `size.rate.bitsPerSecond`, `size.rate.transferTime(dataRate)`, etc.
+- **Enhanced `display` namespace**: New methods `auto()`, `compound()`, `inUnit()`, and `pattern()` for formatting
+- **New export file**: `byte_converter_full.dart` for users who need all advanced features
+
+### Added - Pluralization Utilities
+
+- **New `BytePluralization` class**: Smart pluralization for byte-related terms
+  - `BytePluralization.format(1, 'byte')` → `"1 byte"`
+  - `BytePluralization.format(2, 'byte')` → `"2 bytes"`
+  - `BytePluralization.format(0, 'byte')` → `"0 bytes"`
+- **Locale-aware pluralization**: Support for English, French, Slavic, East Asian, and Arabic rules
+  - `BytePluralization.optionsForLocale('fr')` for French rules (0 and 1 are singular)
+  - `BytePluralization.ruleForLocale('ja')` → `PluralizationRule.eastAsian` (no plural forms)
+- **Extension methods**: Quick pluralization on `int` and `double`
+  - `1536.withUnit('byte', useCommas: true)` → `"1,536 bytes"`
+  - `1.5.withUnit('megabyte')` → `"1.5 megabytes"`
+
+### Deprecated - Migration to Namespaces
+
+The following methods on `ByteConverter` are now deprecated in favor of namespace-based alternatives:
+
+| Deprecated | Use Instead |
+|------------|-------------|
+| `sectors`, `blocks`, `pages`, `words` | `storage.sectors`, `storage.blocks`, etc. |
+| `isWholeSector`, `isWholeBlock`, etc. | `storage.isWholeSector`, etc. |
+| `roundToSector()`, `roundToBlock()`, etc. | `storage.roundToSector()`, etc. |
+| `roundToProfile()`, `alignmentSlack()`, `isAligned()` | `storage.roundToProfile()`, etc. |
+| `bitsPerSecond`, `kiloBitsPerSecond`, etc. | `rate.bitsPerSecond`, etc. |
+| `transferTimeAt()`, `downloadTimeAt()` | `rate.transferTime()`, `rate.transferTimeAt()` |
+| `toHumanReadable(unit)` | `display.inUnit(unit)` |
+| `toHumanReadableAuto()` | `display.auto()` |
+| `toHumanReadableAutoWith(options)` | `display.format(options)` |
+| `toHumanReadableCompound()` | `display.compound()` |
+| `formatWith(pattern)` | `display.pattern(pattern)` |
+| `toFullWords()` | `display.fullWords()` |
+| `largestWholeNumber()` | `output.largestWholeNumber()` |
+
+### Migration Example
+
+```dart
+// Before (deprecated)
+final size = ByteConverter.fromGigaBytes(1.5);
+print(size.toHumanReadableAuto(standard: ByteStandard.iec));
+print(size.sectors);
+print(size.roundToBlock());
+
+// After (recommended)
+final size = ByteConverter.fromGigaBytes(1.5);
+print(size.display.auto(standard: ByteStandard.iec));
+print(size.storage.sectors);
+print(size.storage.roundToBlock());
+```
+
+### Notes
+
+- All deprecated methods will continue to work in v2.x releases
+- Deprecated methods will be removed in v3.0.0
+- The namespace-based API provides better organization and discoverability
+- No breaking changes - existing code continues to work with deprecation warnings
+
+---
+
 ## 2.4.2
 
 ### Added / Improved

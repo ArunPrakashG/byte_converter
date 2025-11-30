@@ -7,6 +7,10 @@ analyzer:
   errors:
     avoid_positional_boolean_parameters: ignore
     avoid_print: ignore
+    # Enable deprecation warnings for users of the library
+    deprecated_member_use: warning
+    # Ignore internal deprecation usage - tests intentionally use deprecated methods
+    deprecated_member_use_from_same_package: ignore
 
 linter:
   rules:

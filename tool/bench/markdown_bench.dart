@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'dart:math';
 
-import 'package:byte_converter/byte_converter.dart';
+import 'package:byte_converter/byte_converter_full.dart';
 import 'package:filesize/filesize.dart' as fs;
 
 typedef Task = void Function();

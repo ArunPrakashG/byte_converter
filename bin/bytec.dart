@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:byte_converter/byte_converter.dart';
+import 'package:byte_converter/byte_converter_full.dart';
 import 'package:byte_converter/src/humanize_options.dart' show SiKSymbolCase;
 
 void main(List<String> args) {

@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import 'package:byte_converter/byte_converter.dart';
+import 'package:byte_converter/byte_converter_full.dart';
 import 'package:byte_converter/byte_converter_intl.dart' as byte_converter_intl;
 import 'package:byte_converter/src/humanize_options.dart' show SiKSymbolCase;
 import 'package:test/test.dart';

@@ -24,6 +24,15 @@ class ParseError {
 
   /// Original exception that was raised internally, useful for debugging.
   final Object? exception;
+
+  @override
+  String toString() {
+    final buffer = StringBuffer(message);
+    if (position != null) {
+      buffer.write(' (at position $position)');
+    }
+    return buffer.toString();
+  }
 }
 
 /// Result wrapper for non-throwing parse helpers.

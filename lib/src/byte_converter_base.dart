@@ -92,50 +92,73 @@ class ByteConverter implements Comparable<ByteConverter> {
 
   // Storage units
   /// Number of sectors (512 B) rounding up.
+  @Deprecated('Use size.storage.sectors instead. Will be removed in v3.0.0.')
   int get sectors => (_bytes / _SECTOR_SIZE).ceil();
 
   /// Number of blocks (4096 B) rounding up.
+  @Deprecated('Use size.storage.blocks instead. Will be removed in v3.0.0.')
   int get blocks => (_bytes / _BLOCK_SIZE).ceil();
 
   /// Number of pages (4096 B) rounding up.
+  @Deprecated('Use size.storage.pages instead. Will be removed in v3.0.0.')
   int get pages => (_bytes / _PAGE_SIZE).ceil();
 
   /// Number of 64-bit words (8 B) rounding up.
+  @Deprecated('Use size.storage.words instead. Will be removed in v3.0.0.')
   int get words => (_bytes / _WORD_SIZE).ceil();
 
   // Network rates
   /// Bits per second when interpreting this value as per-second payload.
+  @Deprecated('Use size.rate.bitsPerSecond instead. Will be removed in v3.0.0.')
   int get bitsPerSecond => _bits;
 
   /// Kilobits per second (SI, base 1000).
+  @Deprecated(
+      'Use size.rate.kiloBitsPerSecond instead. Will be removed in v3.0.0.')
   double get kiloBitsPerSecond => bitsPerSecond / 1000;
 
   /// Megabits per second (SI, base 1000).
+  @Deprecated(
+      'Use size.rate.megaBitsPerSecond instead. Will be removed in v3.0.0.')
   double get megaBitsPerSecond => kiloBitsPerSecond / 1000;
 
   /// Gigabits per second (SI, base 1000).
+  @Deprecated(
+      'Use size.rate.gigaBitsPerSecond instead. Will be removed in v3.0.0.')
   double get gigaBitsPerSecond => megaBitsPerSecond / 1000;
 
   // Time-based methods
   /// Estimated duration to transfer this payload at [bitsPerSecond].
+  @Deprecated(
+      'Use size.rate.transferTimeAt(bytesPerSecond) instead. Will be removed in v3.0.0.')
   Duration transferTimeAt(double bitsPerSecond) =>
       Duration(microseconds: (_bits / bitsPerSecond * 1000000).ceil());
 
   /// Estimated duration to download this payload at [bytesPerSecond].
+  @Deprecated(
+      'Use size.rate.transferTimeAt(bytesPerSecond) instead. Will be removed in v3.0.0.')
   Duration downloadTimeAt(double bytesPerSecond) =>
       Duration(microseconds: (_bytes / bytesPerSecond * 1000000).ceil());
 
   // Convenience getters
   /// True if this value is an exact multiple of the sector size (512 B).
+  @Deprecated(
+      'Use size.storage.isWholeSector instead. Will be removed in v3.0.0.')
   bool get isWholeSector => _bytes % _SECTOR_SIZE == 0;
 
   /// True if this value is an exact multiple of the block size (4096 B).
+  @Deprecated(
+      'Use size.storage.isWholeBlock instead. Will be removed in v3.0.0.')
   bool get isWholeBlock => _bytes % _BLOCK_SIZE == 0;
 
   /// True if this value is an exact multiple of the page size (4096 B).
+  @Deprecated(
+      'Use size.storage.isWholePage instead. Will be removed in v3.0.0.')
   bool get isWholePage => _bytes % _PAGE_SIZE == 0;
 
   /// True if this value is an exact multiple of 64-bit word size (8 B).
+  @Deprecated(
+      'Use size.storage.isWholeWord instead. Will be removed in v3.0.0.')
   bool get isWholeWord => _bytes % _WORD_SIZE == 0;
 
   // Cached unit strings
@@ -236,18 +259,32 @@ class ByteConverter implements Comparable<ByteConverter> {
 
   // Rounding methods
   /// Rounds up to the next sector boundary (512 B).
+  @Deprecated(
+      'Use size.storage.roundToSector() instead. Will be removed in v3.0.0.')
+  // ignore: deprecated_member_use_from_same_package
   ByteConverter roundToSector() => ByteConverter(sectors * _SECTOR_SIZE);
 
   /// Rounds up to the next block boundary (4096 B).
+  @Deprecated(
+      'Use size.storage.roundToBlock() instead. Will be removed in v3.0.0.')
+  // ignore: deprecated_member_use_from_same_package
   ByteConverter roundToBlock() => ByteConverter(blocks * _BLOCK_SIZE);
 
   /// Rounds up to the next page boundary (4096 B).
+  @Deprecated(
+      'Use size.storage.roundToPage() instead. Will be removed in v3.0.0.')
+  // ignore: deprecated_member_use_from_same_package
   ByteConverter roundToPage() => ByteConverter(pages * _PAGE_SIZE);
 
   /// Rounds up to the next word boundary (8 B).
+  @Deprecated(
+      'Use size.storage.roundToWord() instead. Will be removed in v3.0.0.')
+  // ignore: deprecated_member_use_from_same_package
   ByteConverter roundToWord() => ByteConverter(words * _WORD_SIZE);
 
   /// Aligns this converter to a [StorageProfile] bucket using the configured rounding rules.
+  @Deprecated(
+      'Use size.storage.roundToProfile() instead. Will be removed in v3.0.0.')
   ByteConverter roundToProfile(
     StorageProfile profile, {
     String? alignment,
@@ -269,6 +306,9 @@ class ByteConverter implements Comparable<ByteConverter> {
   }
 
   /// Calculates the slack (unused bytes) after aligning to the specified [StorageProfile].
+  @Deprecated(
+      'Use size.storage.alignmentSlack() instead. Will be removed in v3.0.0.')
+  // ignore: deprecated_member_use_from_same_package
   ByteConverter alignmentSlack(
     StorageProfile profile, {
     String? alignment,
@@ -284,6 +324,8 @@ class ByteConverter implements Comparable<ByteConverter> {
   }
 
   /// Returns true when this value already satisfies the requested profile alignment.
+  @Deprecated(
+      'Use size.storage.isAligned() instead. Will be removed in v3.0.0.')
   bool isAligned(
     StorageProfile profile, {
     String? alignment,
@@ -333,12 +375,15 @@ class ByteConverter implements Comparable<ByteConverter> {
 
   /// Formats this value in the specified [unit] with an optional [precision]
   /// for fractional digits. Intended for quick fixed-unit displays.
+  @Deprecated(
+      'Use size.display.inUnit(unit) instead. Will be removed in v3.0.0.')
   String toHumanReadable(SizeUnit unit, {int precision = 2}) {
     final value = _convertToUnit(unit);
     return '${_withPrecision(value, precision)}${_units[unit]}';
   }
 
   /// Formats this value automatically choosing best unit, supporting SI/IEC/JEDEC and bits.
+  @Deprecated('Use size.display.auto() instead. Will be removed in v3.0.0.')
   String toHumanReadableAuto({
     ByteStandard standard = ByteStandard.si,
     bool useBits = false,
@@ -388,6 +433,9 @@ class ByteConverter implements Comparable<ByteConverter> {
   }
 
   /// Convenience overload using ByteFormatOptions.
+  @Deprecated(
+      'Use size.display.format(options) instead. Will be removed in v3.0.0.')
+  // ignore: deprecated_member_use_from_same_package
   String toHumanReadableAutoWith(ByteFormatOptions options) =>
       toHumanReadableAuto(
         standard: options.standard,
@@ -413,6 +461,7 @@ class ByteConverter implements Comparable<ByteConverter> {
       );
 
   /// Compound mixed-unit formatting, e.g., "1 GiB 234 MiB 12 KiB".
+  @Deprecated('Use size.display.compound() instead. Will be removed in v3.0.0.')
   String toHumanReadableCompound(
       {CompoundFormatOptions options = const CompoundFormatOptions()}) {
     return formatCompound(_bytes, options);
@@ -498,6 +547,8 @@ class ByteConverter implements Comparable<ByteConverter> {
   ///  - 'u': unit symbol (KB, MiB, Mb)
   ///  - 'U': unit full word (localized when available)
   /// Numerics use current options (min/max digits, separator/grouping) set via [options].
+  @Deprecated(
+      'Use size.display.pattern(pattern) instead. Will be removed in v3.0.0.')
   String formatWith(String pattern,
       {ByteFormatOptions options = const ByteFormatOptions()}) {
     // Force a single space spacer to reliably split value and unit
@@ -576,6 +627,9 @@ class ByteConverter implements Comparable<ByteConverter> {
   }
 
   /// Convenience full-words output using current defaults.
+  @Deprecated(
+      'Use size.display.fullWords() instead. Will be removed in v3.0.0.')
+  // ignore: deprecated_member_use_from_same_package
   String toFullWords({ByteFormatOptions options = const ByteFormatOptions()}) {
     return toHumanReadableAuto(
       standard: options.standard,
@@ -600,6 +654,8 @@ class ByteConverter implements Comparable<ByteConverter> {
 
   /// Returns the largest whole-number unit and its value for this size under the given standard.
   /// Example: 1536 B -> { value: 1, symbol: 'KB' } (SI), or 1 KiB (IEC).
+  @Deprecated(
+      'Use size.output.largestWholeNumber() instead. Will be removed in v3.0.0.')
   ({int value, String symbol}) largestWholeNumber(
       {ByteStandard standard = ByteStandard.si, bool useBytes = true}) {
     final opt = HumanizeOptions(standard: standard, useBits: !useBytes);

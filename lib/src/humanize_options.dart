@@ -52,6 +52,7 @@ class HumanizeOptions {
     this.nonBreakingSpace = false,
     this.fullForm = false,
     this.fullForms,
+    this.symbols,
     this.separator,
     this.spacer,
     this.minimumFractionDigits,
@@ -66,6 +67,7 @@ class HumanizeOptions {
     this.siKSymbolCase = SiKSymbolCase.upperK,
     this.fixedWidth,
     this.includeSignInWidth = false,
+    this.zeroValue,
   });
 
   /// Unit standard to use for scaling.
@@ -89,6 +91,18 @@ class HumanizeOptions {
 
   /// Optional map of full-form overrides (default full word -> replacement).
   final Map<String, String>? fullForms;
+
+  /// Optional map of unit symbol overrides.
+  ///
+  /// Keys are the default symbol (e.g., 'KB', 'MB', 'GB'), values are replacements.
+  /// Useful for localization or legacy system compatibility.
+  ///
+  /// Example:
+  /// ```dart
+  /// symbols: {'KB': 'Ko', 'MB': 'Mo', 'GB': 'Go'}  // French style
+  /// symbols: {'KB': 'K', 'MB': 'M', 'GB': 'G'}     // Short style
+  /// ```
+  final Map<String, String>? symbols;
 
   /// Decimal separator override. When null, '.' is used.
   final String? separator;
@@ -135,6 +149,19 @@ class HumanizeOptions {
   /// When true, include the sign character in the fixedWidth calculation.
   /// If signed is true and value >= 0, a leading space is used for alignment.
   final bool includeSignInWidth;
+
+  /// Custom display value for zero bytes.
+  ///
+  /// When the value is exactly zero and this is set, this string is returned
+  /// instead of the default "0 B" or equivalent.
+  ///
+  /// Example:
+  /// ```dart
+  /// zeroValue: 'Empty'   // For file lists
+  /// zeroValue: '-'       // For tables
+  /// zeroValue: 'N/A'     // For optional fields
+  /// ```
+  final String? zeroValue;
 }
 
 /// Result of humanizing a raw byte quantity.
