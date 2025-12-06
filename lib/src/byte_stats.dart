@@ -27,9 +27,6 @@ class Histogram {
   int get totalCount => buckets.fold<int>(0, (sum, bin) => sum + bin.count);
 }
 
-/// Numeric aggregations over mixed byte-like inputs (double, int, BigInt, converters).
-/// Aggregations and utilities over byte magnitudes.
-/// Aggregations and utilities over byte magnitudes.
 /// Statistical utilities over collections of byte-like values.
 class ByteStats {
   /// Sum of values treated as bytes.
@@ -126,9 +123,6 @@ class ByteStats {
   }
 }
 
-/// A histogram bucket for BigInt magnitudes.
-/// A single histogram bucket for BigInt magnitudes.
-/// A single histogram bucket for BigInt magnitudes.
 /// Represents a histogram bucket for [BigInt]-sized magnitudes.
 class BigHistogramBucket {
   /// Creates a BigInt bucket with an inclusive [upperBound] and a [count].
@@ -141,9 +135,6 @@ class BigHistogramBucket {
   final int count;
 }
 
-/// Histogram wrapper for BigInt buckets.
-/// A histogram with BigInt [BigHistogramBucket]s.
-/// A histogram with BigInt [BigHistogramBucket]s.
 /// Histogram of [BigHistogramBucket]s for BigInt magnitudes.
 class BigHistogram {
   /// Creates a histogram from an ordered list of BigInt [buckets].

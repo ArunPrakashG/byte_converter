@@ -1,0 +1,19 @@
+---
+title: Edge Cases 🧪
+---
+- Invalid format throws `FormatException`
+  - `ByteConverter.parse('abc')`
+  - `BigByteConverter.parse('1.23 XB')`
+- Unknown units per selected standard throw
+  - e.g., `ByteConverter.parse('1 KiB')` with SI
+  - `DataRate.parse('1 MB/s', standard: ByteStandard.iec)`
+- Locale and separators
+  - NBSP: `"1\u00A0234,5 KB"`
+  - Underscore grouping: `"12_345.67 MB"`
+  - Ambiguous separators: last one is decimal ("1,234.56" and "1.234,56")
+- Negative values
+  - Parsing a negative size triggers `ArgumentError` via constructor validation
+- Zero handling
+  - Sizes: `ByteConverter(0).toHumanReadableAuto(signed: true)` -> `" 0 B"`
+  - Rates: `DataRate.bitsPerSecond(0).toHumanReadableAuto(signed: true)` -> `" 0 b/s"`
+- Very large IEC rates (PiB/s, EiB/s, ZiB/s, YiB/s) supported

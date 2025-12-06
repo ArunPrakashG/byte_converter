@@ -222,3 +222,28 @@ extension TransferPlanAdvanced on TransferPlan {
     return rate.bitsPerSecond * _throttle;
   }
 }
+
+/// Overhead-aware duration estimations.
+extension TransferPlanOverhead on TransferPlan {
+  /// Estimated total duration considering a simple overhead fraction.
+  ///
+  /// The [overheadFraction] reduces the effective throughput by that fraction.
+  Duration? estimatedTotalDurationWithOverhead(double overheadFraction) {
+    final baseBps = (_paused ? 0.0 : rate.bitsPerSecond) * _throttle;
+    if (baseBps == 0) return null;
+    final effBps = baseBps * (1.0 - overheadFraction.clamp(0.0, 1.0));
+    if (effBps == 0) return null;
+    final totalSeconds = (totalBytes.bytes * 8.0) / effBps;
+    return Duration(microseconds: (totalSeconds * 1e6).round());
+  }
+
+  /// Estimated remaining duration considering a simple overhead fraction.
+  Duration? remainingDurationWithOverhead(double overheadFraction) {
+    final baseBps = (_paused ? 0.0 : rate.bitsPerSecond) * _throttle;
+    if (baseBps == 0) return null;
+    final effBps = baseBps * (1.0 - overheadFraction.clamp(0.0, 1.0));
+    if (effBps == 0) return null;
+    final remSeconds = (remainingBytes.bytes * 8.0) / effBps;
+    return Duration(microseconds: (remSeconds * 1e6).ceil());
+  }
+}

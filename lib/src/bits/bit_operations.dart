@@ -212,6 +212,52 @@ class BitOperations {
     return ByteConverter(aligned.toDouble());
   }
 
+  /// Returns true if the byte count is aligned to [alignment] bytes.
+  bool isAlignedTo(int alignment) {
+    if (alignment <= 0) throw ArgumentError('Alignment must be positive');
+    return _converter.bytes.toInt() % alignment == 0;
+  }
+
+  // ============================================
+  // CPU Cache-Line Alignment
+  // ============================================
+
+  /// Aligns up to the next L1 cache-line boundary (64 bytes).
+  ///
+  /// L1 cache lines are typically 64 bytes on modern x86/ARM processors.
+  /// Useful for false-sharing prevention and SIMD optimizations.
+  ByteConverter alignToL1CacheLine() => alignTo(64);
+
+  /// Aligns up to the next L2 cache-line boundary (128 bytes).
+  ///
+  /// L2 cache lines are typically 128 bytes on modern processors.
+  /// Useful for larger memory structures and cache efficiency.
+  ByteConverter alignToL2CacheLine() => alignTo(128);
+
+  /// Aligns up to the next L3 cache-line boundary (256 bytes).
+  ///
+  /// L3 cache lines are typically 256 bytes on modern processors.
+  /// Useful for system-wide cache optimization on multi-core systems.
+  ByteConverter alignToL3CacheLine() => alignTo(256);
+
+  /// Checks if this size is aligned to L1 cache-line boundary (64 bytes).
+  bool get isL1CacheAligned => isAlignedTo(64);
+
+  /// Checks if this size is aligned to L2 cache-line boundary (128 bytes).
+  bool get isL2CacheAligned => isAlignedTo(128);
+
+  /// Checks if this size is aligned to L3 cache-line boundary (256 bytes).
+  bool get isL3CacheAligned => isAlignedTo(256);
+
+  /// Aligns down to the previous L1 cache-line boundary (64 bytes).
+  ByteConverter alignDownToL1CacheLine() => alignDownTo(64);
+
+  /// Aligns down to the previous L2 cache-line boundary (128 bytes).
+  ByteConverter alignDownToL2CacheLine() => alignDownTo(128);
+
+  /// Aligns down to the previous L3 cache-line boundary (256 bytes).
+  ByteConverter alignDownToL3CacheLine() => alignDownTo(256);
+
   // ============================================
   // Binary String Representation
   // ============================================
@@ -379,6 +425,68 @@ class BigBitOperations {
     if (count < 0) throw ArgumentError('Shift count cannot be negative');
     return BigByteConverter.withBits(_converter.bits >> count);
   }
+
+  // ============================================
+  // Alignment Helpers
+  // ============================================
+
+  /// Aligns the byte count up to the specified [alignment].
+  ///
+  /// Example: `alignTo(4096)` for page alignment.
+  BigByteConverter alignTo(int alignment) {
+    if (alignment <= 0) throw ArgumentError('Alignment must be positive');
+    final bytes = _converter.bytes;
+    final a = BigInt.from(alignment);
+    final aligned = ((bytes + a - BigInt.one) ~/ a) * a;
+    return BigByteConverter(aligned);
+  }
+
+  /// Aligns down to the specified [alignment].
+  BigByteConverter alignDownTo(int alignment) {
+    if (alignment <= 0) throw ArgumentError('Alignment must be positive');
+    final bytes = _converter.bytes;
+    final a = BigInt.from(alignment);
+    final aligned = (bytes ~/ a) * a;
+    return BigByteConverter(aligned);
+  }
+
+  /// Returns true if the byte count is aligned to [alignment] bytes.
+  bool isAlignedTo(int alignment) {
+    if (alignment <= 0) throw ArgumentError('Alignment must be positive');
+    final a = BigInt.from(alignment);
+    return _converter.bytes % a == BigInt.zero;
+  }
+
+  // ============================================
+  // CPU Cache-Line Alignment
+  // ============================================
+
+  /// Aligns up to the next L1 cache-line boundary (64 bytes).
+  BigByteConverter alignToL1CacheLine() => alignTo(64);
+
+  /// Aligns up to the next L2 cache-line boundary (128 bytes).
+  BigByteConverter alignToL2CacheLine() => alignTo(128);
+
+  /// Aligns up to the next L3 cache-line boundary (256 bytes).
+  BigByteConverter alignToL3CacheLine() => alignTo(256);
+
+  /// Checks if this size is aligned to L1 cache-line boundary (64 bytes).
+  bool get isL1CacheAligned => isAlignedTo(64);
+
+  /// Checks if this size is aligned to L2 cache-line boundary (128 bytes).
+  bool get isL2CacheAligned => isAlignedTo(128);
+
+  /// Checks if this size is aligned to L3 cache-line boundary (256 bytes).
+  bool get isL3CacheAligned => isAlignedTo(256);
+
+  /// Aligns down to the previous L1 cache-line boundary (64 bytes).
+  BigByteConverter alignDownToL1CacheLine() => alignDownTo(64);
+
+  /// Aligns down to the previous L2 cache-line boundary (128 bytes).
+  BigByteConverter alignDownToL2CacheLine() => alignDownTo(128);
+
+  /// Aligns down to the previous L3 cache-line boundary (256 bytes).
+  BigByteConverter alignDownToL3CacheLine() => alignDownTo(256);
 
   // ============================================
   // Binary String Representation

@@ -97,6 +97,108 @@ String fastHumanizeSiBits(double bytes, {int precision = 2}) {
   return '$s $sym';
 }
 
+/// Ultra-fast formatter for simple SI bytes-per-time use-cases.
+///
+/// Constraints:
+/// - Standard: SI
+/// - Units: B/s, KB/s, MB/s, GB/s, TB/s (bytes)
+/// - No locale/grouping, NBSP, signed, fullForm, fixedWidth.
+/// - Precision: [precision] digits (trailing zeros trimmed).
+/// - Time base: [per] in {'s','ms','min','h'}.
+String fastHumanizeSiRateBytesPerSecond(double bytesPerSecond,
+    {int precision = 2, String per = 's'}) {
+  double perSeconds;
+  switch (per) {
+    case 'ms':
+      perSeconds = 1e-3;
+      break;
+    case 'min':
+      perSeconds = 60.0;
+      break;
+    case 'h':
+      perSeconds = 3600.0;
+      break;
+    default:
+      perSeconds = 1.0;
+      break;
+  }
+
+  final value = bytesPerSecond * perSeconds;
+  const tb = 1e12;
+  const gb = 1e9;
+  const mb = 1e6;
+  const kb = 1e3;
+  String sym;
+  double base;
+  if (value >= tb) {
+    base = tb;
+    sym = 'TB';
+  } else if (value >= gb) {
+    base = gb;
+    sym = 'GB';
+  } else if (value >= mb) {
+    base = mb;
+    sym = 'MB';
+  } else if (value >= kb) {
+    base = kb;
+    sym = 'KB';
+  } else {
+    base = 1.0;
+    sym = 'B';
+  }
+  final v = value / base;
+  final s = _toFixedTrim(v, precision);
+  return '$s $sym/$per';
+}
+
+/// Ultra-fast formatter for simple SI bits-per-time use-cases.
+/// Units: b/s, Kb/s, Mb/s, Gb/s, Tb/s.
+String fastHumanizeSiRateBitsPerSecond(double bitsPerSecond,
+    {int precision = 2, String per = 's'}) {
+  double perSeconds;
+  switch (per) {
+    case 'ms':
+      perSeconds = 1e-3;
+      break;
+    case 'min':
+      perSeconds = 60.0;
+      break;
+    case 'h':
+      perSeconds = 3600.0;
+      break;
+    default:
+      perSeconds = 1.0;
+      break;
+  }
+
+  final value = bitsPerSecond * perSeconds;
+  const tb = 1e12;
+  const gb = 1e9;
+  const mb = 1e6;
+  const kb = 1e3;
+  String sym;
+  double base;
+  if (value >= tb) {
+    base = tb;
+    sym = 'Tb';
+  } else if (value >= gb) {
+    base = gb;
+    sym = 'Gb';
+  } else if (value >= mb) {
+    base = mb;
+    sym = 'Mb';
+  } else if (value >= kb) {
+    base = kb;
+    sym = 'Kb';
+  } else {
+    base = 1.0;
+    sym = 'b';
+  }
+  final v = value / base;
+  final s = _toFixedTrim(v, precision);
+  return '$s $sym/$per';
+}
+
 String _toFixedTrim(double v, int precision) {
   final intV = v.truncateToDouble();
   if (v == intV) return intV.toInt().toString();

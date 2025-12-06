@@ -144,7 +144,11 @@ extension BigByteConverterNamespaces on BigByteConverter {
   /// Access accessibility-friendly output formats.
   ByteAccessibility get accessibility => ByteAccessibility(bytes.toDouble());
 
-  /// Access storage alignment utilities.\n  ///\n  /// Note: Values are converted to double which may lose precision\n  /// for extremely large values.\n  StorageNamespace get storage => StorageNamespace(bytes.toDouble());
+  /// Access storage alignment utilities.
+  ///
+  /// Note: Values are converted to double which may lose precision
+  /// for extremely large values.
+  StorageNamespace get storage => StorageNamespace(bytes.toDouble());
 
   /// Access network rate utilities.
   ///

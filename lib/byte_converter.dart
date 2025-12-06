@@ -41,15 +41,17 @@ export 'src/data_rate.dart';
 export 'src/extensions.dart';
 /// Formatting options for humanized output
 export 'src/format_options.dart' show ByteFormatOptions;
-
 /// Namespace extensions: display, output, compare, accessibility, storage, rate
 export 'src/namespaces.dart';
-
 /// Parse result wrapper with diagnostics
 export 'src/parse_result.dart';
 /// Storage profiles for disk alignment
 export 'src/storage_profile.dart';
 /// Transfer planning and ETA estimation
 export 'src/transfer_plan.dart';
+/// Byte division and chunking utilities
+export 'src/utilities/byte_division.dart';
 /// Smart pluralization for byte-related terms
 export 'src/utilities/byte_pluralization.dart';
+/// Network overhead estimation utilities
+export 'src/utilities/network_overhead.dart';

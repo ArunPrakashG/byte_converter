@@ -30,6 +30,7 @@ class ByteFormatOptions {
     this.siKSymbolCase = SiKSymbolCase.upperK,
     this.fixedWidth,
     this.includeSignInWidth = false,
+    this.per = 's',
   });
 
   /// Unit standard to use when formatting.
@@ -93,6 +94,11 @@ class ByteFormatOptions {
   /// When true, include the sign in width calculation.
   final bool includeSignInWidth;
 
+  /// Time base denominator for data rate formatting.
+  /// Supported values: 's' (seconds), 'ms' (milliseconds), 'min' (minutes), 'h' (hours).
+  /// Defaults to 's'.
+  final String per;
+
   @override
 
   /// Returns a concise string representation highlighting non-default options.
@@ -125,6 +131,7 @@ class ByteFormatOptions {
       parts.add('fixedWidth=$fixedWidth');
     }
     if (includeSignInWidth) parts.add('includeSignInWidth=true');
+    if (per != 's') parts.add('per=$per');
     if (parts.isEmpty) return 'ByteFormatOptions(default)';
     return 'ByteFormatOptions(${parts.join(', ')})';
   }

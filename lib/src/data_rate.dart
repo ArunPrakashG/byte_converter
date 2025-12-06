@@ -186,14 +186,22 @@ class DataRate implements Comparable<DataRate> {
         siKSymbolCase: options.siKSymbolCase,
         fixedWidth: options.fixedWidth,
         includeSignInWidth: options.includeSignInWidth,
+        per: options.per,
       );
 
   /// Compound mixed-unit formatting for data rates. Appends '/s'.
   String toHumanReadableCompound(
-      {CompoundFormatOptions options = const CompoundFormatOptions()}) {
-    final perSeconds = 1.0; // currently only /s in compound; can extend later
+      {CompoundFormatOptions options = const CompoundFormatOptions(),
+      String per = 's'}) {
+    final perSeconds = switch (per) {
+      's' => _sec,
+      'ms' => _ms,
+      'min' => _min,
+      'h' => _hour,
+      _ => _sec,
+    };
     final baseBytesPerUnit =
-        options.useBits ? bitsPerSecond / 8.0 : bytesPerSecond;
+        (options.useBits ? bitsPerSecond / 8.0 : bytesPerSecond) * perSeconds;
     final text = formatCompound(baseBytesPerUnit, options);
     return '$text${_perSuffix(perSeconds)}';
   }

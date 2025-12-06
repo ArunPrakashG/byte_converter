@@ -1,0 +1,49 @@
+---
+title: Byte Converter
+description: The ultimate Dart library for byte conversion, formatting, and parsing.
+template: splash
+hero:
+  tagline: Convert, format, and parse digital sizes and data rates with a clean Dart API.
+  image:
+    alt: Byte Converter logo
+    file: ./logo.svg
+  actions:
+    - text: Get Started
+      link: /guides/getting-started/
+      icon: right-arrow
+    - text: View on GitHub
+      link: https://github.com/ArunPrakashG/byte_converter
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## Features
+
+<CardGrid stagger>
+	<Card title="Formatting" icon="pencil">
+		Human-readable formatting with SI, IEC, and JEDEC standards.
+        [Learn more](/guides/formatting/)
+	</Card>
+	<Card title="Parsing" icon="magnifier">
+		Parse strings like "1.5 GB", "2GiB", or "100 Mbps" effortlessly.
+        [Learn more](/guides/parsing/)
+	</Card>
+	<Card title="Data Rates" icon="rocket">
+		Handle transfer speeds, durations, and bandwidth calculations.
+        [Learn more](/guides/data-rate/)
+	</Card>
+	<Card title="BigInt Support" icon="puzzle">
+		Work with massive values beyond 64-bit integers (YB, ZiB...).
+        [Learn more](/guides/bigint/)
+	</Card>
+    <Card title="Extensions" icon="add-document">
+        Fluent extensions on `int`, `double`, and `BigInt`.
+        [Learn more](/guides/extensions/)
+    </Card>
+    <Card title="Zero Dependencies" icon="check">
+        Lightweight and efficient with no external dependencies.
+    </Card>
+</CardGrid>
+
