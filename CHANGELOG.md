@@ -1,5 +1,69 @@
 # Changelog
 
+## 2.6.0 - 2025-12-06
+
+### 🚀 Major Features
+
+#### New Utilities & Namespaces
+- **Byte Division** (`ByteDivisionNamespace`): Split and distribute bytes
+  - `split(chunkSize)` - Divide bytes into chunks
+  - `distribute(numParts)` - Evenly distribute across parts
+  - `modulo(boundary)` - Calculate remainder
+  - `paddingTo(boundary)` - Calculate padding needed
+  
+- **Bit Operations** (`BitOperationsNamespace`): Low-level bit manipulation
+  - CPU Cache line alignment (L1/L2/L3)
+  - Byte alignment helpers
+  - Binary operations and utilities
+  
+- **Network Overhead** utilities for calculating protocol overhead
+- **Byte Pluralization** with locale-aware rules
+- **Natural Time Delta** for human-readable time differences
+- **Ordinal Numbers** for ranking and positioning
+- **SI Number Formatting** for scientific notation
+- **Storage Alignment** for filesystem operations
+
+#### Advanced Features
+- **BandwidthAccumulator**: Track and analyze bandwidth usage over time
+- **ByteAccessibility**: Screen reader and accessibility support
+- **ByteComparison**: Rich comparison utilities
+- **ByteValidation**: Input validation helpers
+- **NegativeValue**: Handle negative byte values
+- **RelativeTime**: Format relative timestamps
+
+#### Parsing Enhancements
+- **Forced humanization parsing**: Parse ambiguous formats
+- **Expression parsing**: Evaluate arithmetic expressions like "10MB + 5GB"
+- **Duration parsing**: Convert time durations to data sizes
+- Improved error messages and edge case handling
+
+### 🧪 Testing
+- 200+ new test cases for namespaces and utilities
+- Comprehensive coverage for BandwidthAccumulator
+- Tests for all display options and output formats
+- Edge case validation across all features
+- Performance benchmarks for new features
+
+### 🎨 Developer Experience
+- Better IDE autocomplete with namespace organization
+- Improved error messages with actionable hints
+- Consistent API patterns across all features
+- Zero breaking changes - fully backward compatible
+
+### 📦 Package Structure
+- `byte_converter.dart` - Core functionality (recommended)
+- `byte_converter_full.dart` - All features including statistics
+- `byte_converter_intl.dart` - With intl localization
+- `byte_converter_lite.dart` - Minimal without dependencies
+
+### Migration Notes
+- All existing code continues to work without changes
+- New namespace APIs provide better organization
+- Consider migrating from deprecated methods to namespaces for future-proofing
+- See v2.5.0 changelog for namespace migration guide
+
+---
+
 ## 2.5.0
 
 ### Added - Namespace-Based API
