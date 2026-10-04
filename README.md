@@ -35,7 +35,7 @@
 
 ```yaml
 dependencies:
-  byte_converter: ^2.5.0
+  byte_converter: ^2.7.0
 ```
 
 ### Basic Usage
@@ -54,12 +54,12 @@ void main() {
   
   // 🔍 Parse strings (even expressions!)
   final parsed = ByteConverter.parse('2 GiB + 512 MiB');
-  print(parsed.gigaBytes);       // 2.68...
+  print(parsed.gigaBytes);       // 2.68435456
   
   // 🚀 Data rates & transfer estimation
   final rate = DataRate.parse('100 Mbps');
   final plan = size.estimateTransfer(rate);
-  print(plan.etaString());       // "~2 minutes"
+  print(plan.etaString());       // "2m 0s"
 }
 ```
 
@@ -77,7 +77,8 @@ import 'package:byte_converter/byte_converter_full.dart';
 // 🌍 Localization (with intl package)
 import 'package:byte_converter/byte_converter_intl.dart';
 
-// 🪶 Lightweight (no intl dependency)
+// 🪶 Lightweight (built-in number formatter for en, de, fr, es, pt, ja, zh, ru;
+//    does not call into package:intl)
 import 'package:byte_converter/byte_converter_lite.dart';
 ```
 
@@ -89,24 +90,24 @@ import 'package:byte_converter/byte_converter_lite.dart';
 final size = ByteConverter.fromMegaBytes(1536);
 
 // 🎨 Display - formatting options
-size.display.auto()        // "1.5 GB"
-size.display.fuzzy()       // "about 1.5 GB"
-size.display.scientific()  // "1.5 × 10⁹ B"
+size.display.auto()        // "1.54 GB"
+size.display.fuzzy()       // "about 1.54 GB"
+size.display.scientific()  // "1.54 × 10⁹ B"
 
 // 💾 Storage - disk alignment
 size.storage.sectors       // 3000000 (512B sectors)
 size.storage.blocks        // 375000 (4KB blocks)
 
 // 📡 Rate - network calculations
-size.rate.bitsPerSecond    // 12884901888.0
+size.rate.bitsPerSecond    // 12288000000.0
 size.rate.transferTime(rate) // Duration
 
 // 📊 Compare - size comparisons
 size.compare.percentOf(total)     // 15.0
-size.compare.percentageBar(total) // "███░░░░░░░"
+size.compare.percentageBar(total) // "███░░░░░░░░░░░░░░░░░" (20 chars)
 
 // ♿ Accessibility
-size.accessibility.screenReader() // "one point five gigabytes"
+size.accessibility.screenReader() // "one point five four gigabytes"
 ```
 
 ---
@@ -119,7 +120,7 @@ size.accessibility.screenReader() // "one point five gigabytes"
 | 🏁 [Getting Started](https://github.com/ArunPrakashG/byte_converter/wiki/Getting-Started) | Installation & setup |
 | 📝 [Usage Guide](https://github.com/ArunPrakashG/byte_converter/wiki/Usage) | Core functionality |
 | 🧰 [Utilities](https://github.com/ArunPrakashG/byte_converter/wiki/Utilities) | Advanced features |
-| 🔄 [Migration Guide](https://github.com/ArunPrakashG/byte_converter/wiki/Migration-Guide) | Upgrading to v2.5.0 |
+| 🔄 [Migration Guide](https://github.com/ArunPrakashG/byte_converter/wiki/Migration-Guide) | Upgrading to v2.5.0+ |
 
 ---
 

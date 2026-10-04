@@ -17,13 +17,25 @@ import 'storage_profile.dart';
 class ByteConverter implements Comparable<ByteConverter> {
   /// Creates a converter from a [bytes] value.
   ///
-  /// Throws [ArgumentError] if [bytes] is negative.
-  ByteConverter(double bytes) : this._(bytes, (bytes * 8.0).ceil());
+  /// Throws [ArgumentError] if [bytes] is negative, NaN or infinite.
+  ByteConverter(double bytes) : this._(bytes, _bitsFor(bytes));
 
   // Constructors
   ByteConverter._(this._bytes, this._bits) {
+    if (_bytes.isNaN || _bytes.isInfinite) {
+      throw ArgumentError('Bytes must be a finite number');
+    }
     if (_bytes < 0) throw ArgumentError('Bytes cannot be negative');
   }
+
+  // Beyond this many bytes, `bytes * 8` no longer fits exactly in an int
+  // (or a double mantissa), so ordering/equality fall back to [_bytes].
+  static const _exactBitsLimit = 1e15;
+
+  static int _bitsFor(double bytes) =>
+      bytes.isNaN || bytes.isInfinite || bytes < 0 ? 0 : (bytes * 8.0).ceil();
+
+  bool get _bitsExact => _bytes < _exactBitsLimit;
 
   /// Creates a converter from [bits].
   ///
@@ -67,8 +79,19 @@ class ByteConverter implements Comparable<ByteConverter> {
 
   /// Reconstructs a [ByteConverter] from a JSON map produced by [toJson],
   /// expecting a numeric value under the key `bytes`.
+  ///
+  /// Accepts any JSON number (`int` or `double`) as well as numeric strings.
   factory ByteConverter.fromJson(Map<String, dynamic> json) {
-    return ByteConverter(json['bytes'] as double);
+    final raw = json['bytes'];
+    final value = switch (raw) {
+      num n => n.toDouble(),
+      String s => double.tryParse(s),
+      _ => null,
+    };
+    if (value == null) {
+      throw FormatException('Expected a numeric "bytes" value, got: $raw');
+    }
+    return ByteConverter(value);
   }
 
   // Unit conversion constants
@@ -246,16 +269,16 @@ class ByteConverter implements Comparable<ByteConverter> {
 
   // Comparison operators
   /// True if this value is greater than [other].
-  bool operator >(ByteConverter other) => _bits > other._bits;
+  bool operator >(ByteConverter other) => compareTo(other) > 0;
 
   /// True if this value is less than [other].
-  bool operator <(ByteConverter other) => _bits < other._bits;
+  bool operator <(ByteConverter other) => compareTo(other) < 0;
 
   /// True if this value is less than or equal to [other].
-  bool operator <=(ByteConverter other) => _bits <= other._bits;
+  bool operator <=(ByteConverter other) => compareTo(other) <= 0;
 
   /// True if this value is greater than or equal to [other].
-  bool operator >=(ByteConverter other) => _bits >= other._bits;
+  bool operator >=(ByteConverter other) => compareTo(other) >= 0;
 
   // Rounding methods
   /// Rounds up to the next sector boundary (512 B).
@@ -338,23 +361,13 @@ class ByteConverter implements Comparable<ByteConverter> {
   }
 
   @override
-  int compareTo(ByteConverter other) => _bits.compareTo(other._bits);
+  int compareTo(ByteConverter other) => _bitsExact && other._bitsExact
+      ? _bits.compareTo(other._bits)
+      : _bytes.compareTo(other._bytes);
 
-  // Optimized string handling
-  String _calculateString() {
-    final unit = _selectBestUnit();
-    final value = _convertToUnit(unit);
-    return '${_withPrecision(value, 2)}${_units[unit]}';
-  }
-
-  SizeUnit _selectBestUnit() {
-    if (_bytes >= _PB) return SizeUnit.PB;
-    if (_bytes >= _TB) return SizeUnit.TB;
-    if (_bytes >= _GB) return SizeUnit.GB;
-    if (_bytes >= _MB) return SizeUnit.MB;
-    if (_bytes >= _KB) return SizeUnit.KB;
-    return SizeUnit.B;
-  }
+  // Cached string output (auto-scaled SI, up to quettabytes).
+  String _calculateString() =>
+      humanize(_bytes, const HumanizeOptions(precision: 2)).text;
 
   double _convertToUnit(SizeUnit unit) => switch (unit) {
         SizeUnit.PB => petaBytes,
@@ -532,11 +545,11 @@ class ByteConverter implements Comparable<ByteConverter> {
   @override
   // ignore: avoid_equals_and_hash_code_on_mutable_classes
   bool operator ==(Object other) =>
-      identical(this, other) || other is ByteConverter && _bits == other._bits;
+      identical(this, other) || other is ByteConverter && compareTo(other) == 0;
 
   @override
   // ignore: avoid_equals_and_hash_code_on_mutable_classes
-  int get hashCode => _bits.hashCode;
+  int get hashCode => _bitsExact ? _bits.hashCode : _bytes.hashCode;
 
   // JSON serialization
   /// Serializes this value to a JSON map containing the byte count.

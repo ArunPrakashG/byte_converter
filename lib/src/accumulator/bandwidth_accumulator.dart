@@ -9,8 +9,8 @@ import '../data_rate.dart';
 /// ```dart
 /// final accumulator = BandwidthAccumulator();
 ///
-/// accumulator.add(ByteConverter.fromKB(100));
-/// accumulator.add(ByteConverter.fromKB(250));
+/// accumulator.add(ByteConverter.fromKiloBytes(100));
+/// accumulator.add(ByteConverter.fromKiloBytes(250));
 ///
 /// print(accumulator.total);    // ByteConverter representing 350 KB
 /// print(accumulator.average);  // ByteConverter representing 175 KB

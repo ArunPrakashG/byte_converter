@@ -11,7 +11,7 @@
 /// print(chunks.chunkSize);        // 4096 bytes
 /// print(chunks.remainder);        // 0 bytes
 /// ```
-library byte_converter.byte_division;
+library;
 
 import '../byte_converter_base.dart';
 

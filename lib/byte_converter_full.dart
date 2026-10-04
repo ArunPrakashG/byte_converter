@@ -33,7 +33,7 @@
 /// ```dart
 /// import 'package:byte_converter/byte_converter_full.dart';
 /// ```
-library byte_converter_full;
+library;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Core Library (everything from byte_converter.dart)

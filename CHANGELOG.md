@@ -1,5 +1,32 @@
 # Changelog
 
+## 2.7.0 - 2026-10-04
+
+### Fixed
+- **Flutter install failure:** `intl` constraint widened to `>=0.19.0 <0.21.0`, so the package resolves alongside `flutter_localizations` (which pins `intl 0.20.x`).
+- **Rounding at unit boundaries:** values that round up to the unit ratio are now promoted to the next unit. `ByteConverter(999999)` formats as `1 MB` (was `1000 KB`), for SI, IEC, JEDEC and bit output.
+- **IEC beyond TiB:** IEC auto-scaling no longer stops at `TiB` (`1 PiB` was printed as `1024 TiB`; `BigByteConverter` values up to `YiB` format correctly).
+- `ByteConverter.toString()` now scales up to quettabytes instead of capping at `PB`.
+- `ByteConverter.fromJson` accepts integers and numeric strings (it previously threw a `TypeError` on `{"bytes": 1024}`).
+- `ByteConverter` equality, ordering and `hashCode` stay correct for values beyond ~1.15 EB (bit counts used to saturate, so `1e19 == 2e19`).
+- `ByteConverter(double.nan)` / `infinity` throw `ArgumentError` instead of `UnsupportedError`.
+- Parsing: `1 KiB` / `1 kibibyte` now parse under the default (SI) standard, like `MiB`/`GiB` always did (also for data rates, `1 KiB/s`).
+- Parsing: `1,234 bytes` is read as 1234 (a lone comma followed by exactly three digits is thousands grouping); repeated separators such as `1,234,567` / `1.234.567` are grouping. `1,5 GB` and `1.234 GB` are unchanged.
+- Parsing: short bit forms `Mbit`, `kbits`, `Gibit` are accepted.
+- `fullForm` output uses English singular names (`1 byte`, `1 kilobyte`).
+- Doc comments referenced constructors that do not exist (`fromMB`, `fromGB`, `fromKB`) and showed methods as properties.
+
+### Changed
+- `SiKSymbolCase`, `UnitPolicy` and `FormattingRoundingMode` are exported from `byte_converter.dart` (they appear in public signatures).
+- README output examples corrected; the install snippet points at 2.7.x.
+- Internals: the four humanize fast paths share one table-driven scaler.
+- `library` directives no longer carry names; `lints` bumped to `^6.0.0`.
+- `.pubignore` keeps the wiki, website and tooling out of the published archive.
+
+### Added
+- GitHub Actions: CI (format, analyze, VM + Chrome tests, publish dry-run, Flutter resolution check) and tag-triggered publishing.
+- `test/regression_review_test.dart`; the `*_priority_features` / `new_features` test files were renamed by area.
+
 ## 2.6.0 - 2025-12-06
 
 ### 🚀 Major Features

@@ -2,7 +2,7 @@
 ///
 /// Provides access to network rate properties and transfer time calculations
 /// grouped under the `rate` namespace.
-library byte_converter.network_rate;
+library;
 
 import '../byte_converter_base.dart';
 import '../data_rate.dart';

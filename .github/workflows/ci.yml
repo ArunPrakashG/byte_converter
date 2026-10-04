@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+      - run: dart pub get
+      - run: dart format --output=none --set-exit-if-changed lib bin test example
+      - run: dart analyze --fatal-infos
+      - run: dart test
+      - run: dart test -p chrome
+      - run: dart pub publish --dry-run
+
+  flutter-resolution:
+    # Guards against dependency constraints (e.g. intl) that Flutter's SDK pins
+    # and which would make the package uninstallable in Flutter apps.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Resolve alongside flutter_localizations
+        run: |
+          mkdir "$RUNNER_TEMP/app" && cd "$RUNNER_TEMP/app"
+          cat > pubspec.yaml <<YAML
+          name: resolution_check
+          publish_to: none
+          environment:
+            sdk: ">=3.0.0 <4.0.0"
+          dependencies:
+            flutter:
+              sdk: flutter
+            flutter_localizations:
+              sdk: flutter
+            byte_converter:
+              path: $GITHUB_WORKSPACE
+          YAML
+          flutter pub get

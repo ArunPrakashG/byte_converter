@@ -4,7 +4,7 @@
 /// attempts and [ParseError] with structured failure details.
 ///
 /// Diagnostics returned by `tryParse` helpers for byte and data rate parsing.
-library byte_converter.parse_result;
+library;
 
 /// Structured error information produced by parse helpers.
 class ParseError {

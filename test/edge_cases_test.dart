@@ -9,18 +9,14 @@ void main() {
     });
 
     test('Unknown units per standard throw', () {
-      expect(
-        () => ByteConverter.parse('1 KiB'),
-        throwsFormatException,
-      );
+      expect(ByteConverter.parse('1 KiB').bytes, 1024);
+      expect(ByteConverter.parse('1 KiB', standard: ByteStandard.jedec).bytes,
+          1024);
       expect(
         () => ByteConverter.parse('1 KB', standard: ByteStandard.iec),
         throwsFormatException,
       );
-      expect(
-        () => DataRate.parse('1 KiB/s'),
-        throwsFormatException,
-      );
+      expect(DataRate.parse('1 KiB/s').bitsPerSecond, 8 * 1024);
       expect(
         () => DataRate.parse('1 MB/s', standard: ByteStandard.iec),
         throwsFormatException,

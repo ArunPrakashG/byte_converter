@@ -2,7 +2,7 @@
 ///
 /// These options are typically consumed by higher-level converters to
 /// configure unit scaling, spacing, grouping, and numeric rounding behavior.
-library byte_converter.format_options;
+library;
 
 import 'byte_enums.dart';
 import 'humanize_options.dart' show SiKSymbolCase;

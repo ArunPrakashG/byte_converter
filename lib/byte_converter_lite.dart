@@ -1,4 +1,4 @@
-library byte_converter_lite;
+library;
 
 import 'src/humanize_number_format.dart';
 import 'src/humanize_options.dart';

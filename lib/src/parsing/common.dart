@@ -111,6 +111,21 @@ String _normalizeNumber(String s) {
   final sign = t.startsWith('-') ? '-' : (t.startsWith('+') ? '+' : '');
   if (sign.isNotEmpty) t = t.substring(1);
 
+  // A separator that repeats ("1,234,567" / "1.234.567") can only be grouping.
+  // A lone comma followed by exactly three digits after 1-3 leading digits
+  // ("1,234") is read as English thousands grouping. A lone dot is kept as a
+  // decimal point ("1.234 GB"), and anything else keeps last-separator-wins.
+  for (final sep in const [',', '.']) {
+    final count = sep.allMatches(t).length;
+    final other = sep == ',' ? '.' : ',';
+    if (count >= 2 && !t.contains(other)) {
+      return sign + t.replaceAll(sep, '');
+    }
+  }
+  if (RegExp(r'^\d{1,3},\d{3}$').hasMatch(t)) {
+    return sign + t.replaceAll(',', '');
+  }
+
   // Determine the position (in digit count) of the last separator to use as decimal
   int? digitDecimalIndex; // number of digits before the decimal point
   var digitCount = 0;
@@ -161,6 +176,14 @@ class MathHelper {
   /// Returns 10^p as a double. For p <= 0 returns 1.0.
   static double pow10(int p) =>
       p <= 0 ? 1.0 : List.filled(p, 10).fold(1, (a, b) => a * b);
+}
+
+/// True when rounding [v] to [precision] fraction digits yields [ratio] or
+/// more, i.e. the number would print as the unit ratio itself ("1000", "1024").
+bool _roundsToRatio(double v, int precision, double ratio) {
+  if (v < ratio - 1) return false;
+  final factor = MathHelper.pow10(precision < 0 ? 0 : precision);
+  return (v * factor).roundToDouble() / factor >= ratio;
 }
 
 String _toFixedTrim(double v, int precision) {

@@ -8,12 +8,12 @@ import '../byte_converter_base.dart';
 /// Example:
 /// ```dart
 /// // Validate file size before upload
-/// if (!ByteValidation.isValidFileSize(fileSize, maxSize: ByteConverter.fromMB(100))) {
+/// if (!ByteValidation.isValidFileSize(fileSize, maxSize: ByteConverter.fromMegaBytes(100))) {
 ///   throw ArgumentError('File too large');
 /// }
 ///
 /// // Check quota
-/// if (!ByteValidation.isWithinQuota(currentUsage, quota: ByteConverter.fromGB(5))) {
+/// if (!ByteValidation.isWithinQuota(currentUsage, quota: ByteConverter.fromGigaBytes(5))) {
 ///   print('Quota exceeded!');
 /// }
 /// ```

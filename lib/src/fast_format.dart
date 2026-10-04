@@ -1,4 +1,4 @@
-library fast_format;
+library;
 
 /// Ultra-fast formatter for simple SI bytes use-cases.
 ///

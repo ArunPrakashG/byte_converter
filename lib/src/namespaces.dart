@@ -1,6 +1,6 @@
 /// Extensions providing namespace access for ByteConverter display, output,
 /// comparison, and accessibility features.
-library byte_converter.namespaces;
+library;
 
 import 'accessibility/byte_accessibility.dart';
 import 'big_byte_converter.dart';
@@ -33,31 +33,31 @@ export 'validation/byte_validation.dart';
 ///
 /// Example usage:
 /// ```dart
-/// final size = ByteConverter.fromMB(1.5);
+/// final size = ByteConverter.fromMegaBytes(1.5);
 ///
 /// // Display namespace
-/// print(size.display.fuzzy);       // "about 1.5 MB"
-/// print(size.display.scientific);  // "1.5 × 10⁶ B"
-/// print(size.display.gnu);         // "1.5M"
+/// print(size.display.fuzzy());       // "about 1.5 MB"
+/// print(size.display.scientific());  // "1.5 × 10⁶ B"
+/// print(size.display.gnu());         // "1.5M"
 ///
 /// // Output namespace
 /// print(size.output.asArray);      // [1.5, 'MB']
 /// print(size.output.asTuple);      // (1.5, 'MB')
 ///
 /// // Comparison namespace
-/// final total = ByteConverter.fromGB(1);
+/// final total = ByteConverter.fromGigaBytes(1);
 /// print(size.compare.percentOf(total));  // 0.15
 ///
 /// // Accessibility namespace
-/// print(size.accessibility.screenReader);  // "one point five megabytes"
+/// print(size.accessibility.screenReader());  // "one point five megabytes"
 /// ```
 extension ByteConverterNamespaces on ByteConverter {
   /// Access alternative display formats (fuzzy, scientific, fractional, GNU).
   ///
   /// Example:
   /// ```dart
-  /// final size = ByteConverter.fromMB(1.5);
-  /// print(size.display.fuzzy);  // "about 1.5 MB"
+  /// final size = ByteConverter.fromMegaBytes(1.5);
+  /// print(size.display.fuzzy());  // "about 1.5 MB"
   /// ```
   ByteDisplayOptions get display => ByteDisplayOptions(bytes);
 
@@ -65,7 +65,7 @@ extension ByteConverterNamespaces on ByteConverter {
   ///
   /// Example:
   /// ```dart
-  /// final size = ByteConverter.fromKB(1536);
+  /// final size = ByteConverter.fromKiloBytes(1536);
   /// print(size.output.asArray);  // [1.5, 'MB']
   /// ```
   ByteOutputFormats get output => ByteOutputFormats(bytes);
@@ -74,7 +74,7 @@ extension ByteConverterNamespaces on ByteConverter {
   ///
   /// Example:
   /// ```dart
-  /// final size = ByteConverter.fromKB(1024);
+  /// final size = ByteConverter.fromKiloBytes(1024);
   /// print(size.outputWith(ByteStandard.iec).asArray);  // [1.0, 'MiB']
   /// ```
   ByteOutputFormats outputWith(ByteStandard standard) =>
@@ -84,8 +84,8 @@ extension ByteConverterNamespaces on ByteConverter {
   ///
   /// Example:
   /// ```dart
-  /// final used = ByteConverter.fromGB(75);
-  /// final total = ByteConverter.fromGB(100);
+  /// final used = ByteConverter.fromGigaBytes(75);
+  /// final total = ByteConverter.fromGigaBytes(100);
   /// print(used.compare.percentOf(total));  // 75.0
   /// ```
   ByteComparison get compare => ByteComparison(bytes);
@@ -94,8 +94,8 @@ extension ByteConverterNamespaces on ByteConverter {
   ///
   /// Example:
   /// ```dart
-  /// final size = ByteConverter.fromMB(1.5);
-  /// print(size.accessibility.screenReader);  // "one point five megabytes"
+  /// final size = ByteConverter.fromMegaBytes(1.5);
+  /// print(size.accessibility.screenReader());  // "one point five megabytes"
   /// ```
   ByteAccessibility get accessibility => ByteAccessibility(bytes);
 

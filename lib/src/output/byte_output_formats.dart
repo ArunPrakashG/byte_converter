@@ -7,7 +7,7 @@ import '../byte_enums.dart';
 ///
 /// Access via the `output` extension property on [ByteConverter]:
 /// ```dart
-/// final size = ByteConverter.fromKB(1536);
+/// final size = ByteConverter.fromKiloBytes(1536);
 /// print(size.output.asArray);   // [1.5, 'MB']
 /// print(size.output.asTuple);   // (1.5, 'MB')
 /// print(size.output.asMap);     // {'value': 1.5, 'unit': 'MB', 'standard': 'SI'}

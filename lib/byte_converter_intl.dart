@@ -26,7 +26,7 @@
 /// ```dart
 /// import 'package:byte_converter/byte_converter_lite.dart';
 /// ```
-library byte_converter_intl;
+library;
 
 import 'package:intl/intl.dart';
 
@@ -38,6 +38,7 @@ import 'src/humanize_options.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 
 export 'byte_converter.dart';
+
 /// Unit name localization functions
 export 'src/localized_unit_names.dart'
     show

@@ -88,25 +88,27 @@ String _unitSymbolFor(
 /// fraction digits, rounding strategies, fixed-width padding, and optional
 /// forced units.
 HumanizeResult humanize(double bytes, HumanizeOptions opt) {
-  // Common fast paths with early returns
-  if (_isFastSiDefault(opt)) {
-    // Limit SI fast path to TB and below; larger magnitudes (PB, EB, YB, RB, QB)
-    // require the full path to select correct extended units.
-    if (bytes < 1e15) {
-      return _humanizeFastSi(bytes, opt.precision);
-    }
+  // Common fast paths with early returns. Each returns null when the value
+  // needs a unit the table lacks (or rounding forces promotion beyond it), in
+  // which case the general path below handles it.
+  if (_isFastSiDefault(opt) && bytes < 1e15) {
+    final r = _humanizeFastSi(bytes, opt.precision);
+    if (r != null) return r;
   }
 
   if (_isFastJedecDefault(opt)) {
-    return _humanizeFastJedec(bytes, opt.precision);
+    final r = _humanizeFastJedec(bytes, opt.precision);
+    if (r != null) return r;
   }
 
-  if (_isFastSiBitsDefault(opt)) {
-    return _humanizeFastSiBits(bytes, opt.precision);
+  if (_isFastSiBitsDefault(opt) && bytes * 8.0 < 1e15) {
+    final r = _humanizeFastSiBits(bytes, opt.precision);
+    if (r != null) return r;
   }
 
-  if (_isFastIecDefault(opt)) {
-    return _humanizeFastIec(bytes, opt.precision);
+  if (_isFastIecDefault(opt) && bytes < 1e15) {
+    final r = _humanizeFastIec(bytes, opt.precision);
+    if (r != null) return r;
   }
 
   if (_isFastForcedDefault(opt)) {
@@ -334,11 +336,26 @@ HumanizeResult humanize(double bytes, HumanizeOptions opt) {
     base = forcedBase ?? 1.0;
   } else {
     // Auto-scale selection
+    final scaled = opt.useBits ? value : bytes;
     for (var i = 0; i < thresholds.length; i++) {
       final threshold = thresholds[i];
-      if ((opt.useBits ? value : bytes) >= threshold) {
+      if (scaled >= threshold) {
         base = threshold;
         chosenSymbol = symbols[i];
+        // Promote when rounding would print the unit ratio ("1000 KB").
+        final truncating = opt.truncate &&
+            (opt.minimumFractionDigits != null ||
+                opt.maximumFractionDigits != null);
+        if (i > 0 && !truncating) {
+          final ratio = thresholds[i - 1] / threshold;
+          final digits = opt.maximumFractionDigits ??
+              opt.minimumFractionDigits ??
+              opt.precision;
+          if (_roundsToRatio(scaled / threshold, digits, ratio)) {
+            base = thresholds[i - 1];
+            chosenSymbol = symbols[i - 1];
+          }
+        }
         break;
       }
     }
@@ -365,13 +382,29 @@ HumanizeResult humanize(double bytes, HumanizeOptions opt) {
       opt.useBits,
       locale: opt.locale,
     );
-    final singular = (v.abs() == 1.0)
+    final isOne = v.abs() == 1.0;
+    var singular = isOne
         ? localizedUnitSingularName(unitSymbol,
             locale: opt.locale, bits: opt.useBits)
         : null;
+    // English has no registered singular forms: derive them ("1 byte").
+    final loc = (opt.locale ?? '').toLowerCase();
+    final isEnglish = loc.isEmpty ||
+        loc == 'en' ||
+        loc.startsWith('en-') ||
+        loc.startsWith('en_');
+    if (isOne &&
+        isEnglish &&
+        (singular == null || singular == full) &&
+        full.length > 1 &&
+        full.endsWith('s') &&
+        full != unitSymbol) {
+      singular = full.substring(0, full.length - 1);
+    }
     final chosen = singular ?? full;
-    unitOut = opt.fullForms != null && opt.fullForms!.containsKey(chosen)
-        ? opt.fullForms![chosen]!
+    final overrides = opt.fullForms;
+    unitOut = overrides != null
+        ? (overrides[chosen] ?? overrides[full] ?? chosen)
         : chosen;
   } else {
     unitOut = unitSymbol;
@@ -405,123 +438,55 @@ HumanizeResult humanize(double bytes, HumanizeOptions opt) {
   return HumanizeResult(v, chosenSymbol, text);
 }
 
-// Extremely fast SI-bytes humanizer for the default/common case only.
-// - Units: B, KB, MB, GB, TB, PB (SI base 1000)
-// - Precision: trim trailing zeros and decimal point
-// - Spacer: single space
-HumanizeResult _humanizeFastSi(double bytes, int precision) {
-  const tb = 1e12;
-  const gb = 1e9;
-  const mb = 1e6;
-  const kb = 1e3;
-  String sym;
-  double base;
-  if (bytes >= tb) {
-    base = tb;
-    sym = 'TB';
-  } else if (bytes >= gb) {
-    base = gb;
-    sym = 'GB';
-  } else if (bytes >= mb) {
-    base = mb;
-    sym = 'MB';
-  } else if (bytes >= kb) {
-    base = kb;
-    sym = 'KB';
-  } else {
-    base = 1.0;
-    sym = 'B';
+const _fastSiTh = <double>[1e12, 1e9, 1e6, 1e3, 1.0];
+const _fastSiSym = <String>['TB', 'GB', 'MB', 'KB', 'B'];
+const _fastSiBitSym = <String>['Tb', 'Gb', 'Mb', 'Kb', 'b'];
+const _fastBinTh = <double>[
+  1099511627776.0, // 1024^4
+  1073741824.0, // 1024^3
+  1048576.0, // 1024^2
+  1024.0,
+  1.0,
+];
+const _fastIecSym = <String>['TiB', 'GiB', 'MiB', 'KiB', 'B'];
+const _fastJedecSym = <String>['TB', 'GB', 'MB', 'KB', 'B'];
+
+/// Shared table-driven scaler for the fast paths.
+///
+/// Picks the largest unit not exceeding [x], then promotes to the next larger
+/// unit when rounding to [precision] digits would otherwise print the
+/// unit-ratio itself (e.g. `1000 KB` instead of `1 MB`). Returns null when
+/// promotion is required but the table has no larger unit, so the caller can
+/// fall back to the general path.
+HumanizeResult? _fastScale(
+  double x,
+  int precision,
+  List<double> th,
+  List<String> sym,
+  double ratio,
+) {
+  var i = 0;
+  while (i < th.length - 1 && x < th[i]) {
+    i++;
   }
-  final v = bytes / base;
+  var v = x / th[i];
+  if (i < th.length - 1 && _roundsToRatio(v, precision, ratio)) {
+    if (i == 0) return null;
+    i--;
+    v = x / th[i];
+  }
   final s = _toFixedTrim(v, precision);
-  final text = '$s $sym';
-  return HumanizeResult(v, sym, text);
+  return HumanizeResult(v, sym[i], '$s ${sym[i]}');
 }
 
-HumanizeResult _humanizeFastJedec(double bytes, int precision) {
-  const tb = 1099511627776.0; // 1024^4
-  const gb = 1073741824.0; // 1024^3
-  const mb = 1048576.0; // 1024^2
-  const kb = 1024.0; // 1024^1
-  String sym;
-  double base;
-  if (bytes >= tb) {
-    base = tb;
-    sym = 'TB';
-  } else if (bytes >= gb) {
-    base = gb;
-    sym = 'GB';
-  } else if (bytes >= mb) {
-    base = mb;
-    sym = 'MB';
-  } else if (bytes >= kb) {
-    base = kb;
-    sym = 'KB';
-  } else {
-    base = 1.0;
-    sym = 'B';
-  }
-  final v = bytes / base;
-  final s = _toFixedTrim(v, precision);
-  final text = '$s $sym';
-  return HumanizeResult(v, sym, text);
-}
+HumanizeResult? _humanizeFastSi(double bytes, int precision) =>
+    _fastScale(bytes, precision, _fastSiTh, _fastSiSym, 1000.0);
 
-HumanizeResult _humanizeFastSiBits(double bytes, int precision) {
-  final bits = bytes * 8.0;
-  const tb = 1e12;
-  const gb = 1e9;
-  const mb = 1e6;
-  const kb = 1e3;
-  String sym;
-  double base;
-  if (bits >= tb) {
-    base = tb;
-    sym = 'Tb';
-  } else if (bits >= gb) {
-    base = gb;
-    sym = 'Gb';
-  } else if (bits >= mb) {
-    base = mb;
-    sym = 'Mb';
-  } else if (bits >= kb) {
-    base = kb;
-    sym = 'Kb';
-  } else {
-    base = 1.0;
-    sym = 'b';
-  }
-  final v = bits / base;
-  final s = _toFixedTrim(v, precision);
-  final text = '$s $sym';
-  return HumanizeResult(v, sym, text);
-}
+HumanizeResult? _humanizeFastJedec(double bytes, int precision) =>
+    _fastScale(bytes, precision, _fastBinTh, _fastJedecSym, 1024.0);
 
-HumanizeResult _humanizeFastIec(double bytes, int precision) {
-  const tib = 1099511627776.0; // 1024^4
-  const gib = 1073741824.0; // 1024^3
-  const mib = 1048576.0; // 1024^2
-  const kib = 1024.0; // 1024^1
-  String sym;
-  double base;
-  if (bytes >= tib) {
-    base = tib;
-    sym = 'TiB';
-  } else if (bytes >= gib) {
-    base = gib;
-    sym = 'GiB';
-  } else if (bytes >= mib) {
-    base = mib;
-    sym = 'MiB';
-  } else if (bytes >= kib) {
-    base = kib;
-    sym = 'KiB';
-  } else {
-    base = 1.0;
-    sym = 'B';
-  }
-  final v = bytes / base;
-  final s = _toFixedTrim(v, precision);
-  final text = '$s $sym';
-  return HumanizeResult(v, sym, text);
-}
+HumanizeResult? _humanizeFastSiBits(double bytes, int precision) =>
+    _fastScale(bytes * 8.0, precision, _fastSiTh, _fastSiBitSym, 1000.0);
+
+HumanizeResult? _humanizeFastIec(double bytes, int precision) =>
+    _fastScale(bytes, precision, _fastBinTh, _fastIecSym, 1024.0);

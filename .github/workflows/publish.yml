@@ -1,0 +1,21 @@
+# Automated publishing from tags like v2.7.0.
+# One-time setup: pub.dev -> package Admin -> Automated publishing ->
+# enable GitHub Actions, repository ArunPrakashG/byte_converter, tag pattern v{{version}}.
+name: Publish
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+*"
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+      - run: dart pub get
+      - run: dart test
+      - run: dart pub publish --force

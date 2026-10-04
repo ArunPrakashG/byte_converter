@@ -276,7 +276,8 @@ void main() {
     group('withMode', () {
       test('uses specified ByteRoundingMode', () {
         expect(
-          ByteRounding.withMode(1.5, precision: 0, mode: ByteRoundingMode.floor),
+          ByteRounding.withMode(1.5,
+              precision: 0, mode: ByteRoundingMode.floor),
           1.0,
         );
         expect(
@@ -284,7 +285,8 @@ void main() {
           2.0,
         );
         expect(
-          ByteRounding.withMode(2.5, precision: 0, mode: ByteRoundingMode.halfEven),
+          ByteRounding.withMode(2.5,
+              precision: 0, mode: ByteRoundingMode.halfEven),
           2.0,
         );
       });
@@ -292,8 +294,8 @@ void main() {
 
     group('extension methods', () {
       test('roundWithMode works on double', () {
-        expect(
-            1.5.roundWithMode(precision: 0, mode: ByteRoundingMode.halfEven), 2.0);
+        expect(1.5.roundWithMode(precision: 0, mode: ByteRoundingMode.halfEven),
+            2.0);
       });
 
       test('roundHalfEven uses banker\'s rounding', () {

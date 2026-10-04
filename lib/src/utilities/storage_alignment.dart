@@ -2,7 +2,7 @@
 ///
 /// Provides access to storage-related properties and methods grouped
 /// under the `storage` namespace.
-library byte_converter.storage_alignment;
+library;
 
 import '../byte_converter_base.dart';
 import '../byte_enums.dart' show RoundingMode;
@@ -67,10 +67,12 @@ class StorageNamespace {
   // ─────────────────────────────────────────────────────────────────────────
 
   /// Rounds up to the next sector boundary (512 B).
-  ByteConverter roundToSector() => ByteConverter((sectors * _sectorSize).toDouble());
+  ByteConverter roundToSector() =>
+      ByteConverter((sectors * _sectorSize).toDouble());
 
   /// Rounds up to the next block boundary (4096 B).
-  ByteConverter roundToBlock() => ByteConverter((blocks * _blockSize).toDouble());
+  ByteConverter roundToBlock() =>
+      ByteConverter((blocks * _blockSize).toDouble());
 
   /// Rounds up to the next page boundary (4096 B).
   ByteConverter roundToPage() => ByteConverter((pages * _pageSize).toDouble());
@@ -147,8 +149,7 @@ class StorageNamespace {
     if (blockSize == 0) return false;
     final remainder = _bytes % blockSize;
     const epsilon = 1e-9;
-    return remainder.abs() < epsilon ||
-        (blockSize - remainder).abs() < epsilon;
+    return remainder.abs() < epsilon || (blockSize - remainder).abs() < epsilon;
   }
 
   // ─────────────────────────────────────────────────────────────────────────

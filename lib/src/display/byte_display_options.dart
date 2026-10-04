@@ -12,11 +12,11 @@ import '../localized_unit_names.dart' show localizedUnitName;
 ///
 /// Access via the `display` extension property on [ByteConverter]:
 /// ```dart
-/// final size = ByteConverter.fromMB(1.5);
-/// print(size.display.fuzzy);       // "about 1.5 MB"
-/// print(size.display.scientific);  // "1.5 × 10⁶ B"
+/// final size = ByteConverter.fromMegaBytes(1.5);
+/// print(size.display.fuzzy());       // "about 1.5 MB"
+/// print(size.display.scientific());  // "1.5 × 10⁶ B"
 /// print(size.display.fractional);  // "1½ MB"
-/// print(size.display.gnu);         // "1.5M"
+/// print(size.display.gnu());         // "1.5M"
 /// ```
 class ByteDisplayOptions {
   /// Creates display options for the given byte value.

@@ -2,7 +2,6 @@ import 'dart:math' as math;
 
 import 'package:byte_converter/byte_converter_full.dart';
 import 'package:byte_converter/byte_converter_intl.dart' as byte_converter_intl;
-import 'package:byte_converter/src/humanize_options.dart' show SiKSymbolCase;
 import 'package:test/test.dart';
 
 void main() {
@@ -362,8 +361,8 @@ void main() {
         minimumFractionDigits: 0,
         maximumFractionDigits: 0,
       );
-      expect(rText, equals('1 ronnabytes'));
-      expect(qText, equals('1 quettabytes'));
+      expect(rText, equals('1 ronnabyte'));
+      expect(qText, equals('1 quettabyte'));
     });
   });
 }

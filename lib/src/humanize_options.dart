@@ -1,5 +1,5 @@
 /// Humanization configuration types controlling how values are rendered as text.
-library byte_converter.humanize_options;
+library;
 
 import 'byte_enums.dart';
 
