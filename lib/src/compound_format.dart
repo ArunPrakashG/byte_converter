@@ -1,4 +1,5 @@
-import 'package:intl/intl.dart' show NumberFormat;
+import 'humanize_number_format.dart';
+import 'humanize_options.dart';
 
 import 'byte_enums.dart';
 import 'localized_unit_names.dart';
@@ -206,6 +207,37 @@ List<(double, String)> _decompose(double quantity, CompoundFormatOptions opt) {
   return parts;
 }
 
+/// Formats an integer part, grouping thousands. Uses the registered
+/// [HumanizeNumberFormatter] when a locale is set, otherwise English grouping.
+String _formatCompoundNumber(int value, CompoundFormatOptions opt) {
+  if (!opt.useGrouping) return value.toString();
+  final locale = opt.locale;
+  final formatter = humanizeNumberFormatter;
+  if (formatter != null && locale != null && locale.isNotEmpty) {
+    try {
+      final out = formatter(
+        value.toDouble(),
+        HumanizeOptions(
+          locale: locale,
+          precision: 0,
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0,
+        ),
+      );
+      if (out.isNotEmpty) return out;
+    } catch (_) {
+      // fall through to the default grouping
+    }
+  }
+  final digits = value.abs().toString();
+  final buf = StringBuffer(value < 0 ? '-' : '');
+  for (var i = 0; i < digits.length; i++) {
+    if (i > 0 && (digits.length - i) % 3 == 0) buf.write(',');
+    buf.write(digits[i]);
+  }
+  return buf.toString();
+}
+
 /// Formats a byte quantity (in bytes) to a compound mixed-unit string.
 ///
 /// The [opt.useBits] flag toggles bit-based output (lowercase symbols). Unit
@@ -218,8 +250,6 @@ String formatCompound(double bytes, CompoundFormatOptions opt) {
   final parts = _decompose(quantity, opt);
   final locale = opt.locale;
   final fullForms = opt.fullForms;
-  final numberFormat =
-      opt.useGrouping ? NumberFormat.decimalPattern(locale) : null;
   final unitTexts = parts.map((p) {
     final value = p.$1;
     final sym = p.$2;
@@ -227,8 +257,7 @@ String formatCompound(double bytes, CompoundFormatOptions opt) {
         ? _pluralize(sym, value, opt.useBits,
             locale: locale, overrides: fullForms)
         : sym;
-    final numStr =
-        numberFormat?.format(value.toInt()) ?? value.toStringAsFixed(0);
+    final numStr = _formatCompoundNumber(value.toInt(), opt);
     return '$numStr${opt.spacer}$name';
   }).toList();
   return unitTexts.join(opt.separator);

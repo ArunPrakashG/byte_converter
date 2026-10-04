@@ -142,7 +142,7 @@ final parsed = parseByteSizeAuto('12.34 ZiB', standard: ByteStandard.iec);
 if (parsed.isBig) {
   print((parsed as ParsedBig).value.toHumanReadableAuto(standard: ByteStandard.iec));
 } else {
-  print((parsed as ParsedNormal).value.toHumanReadableAuto());
+  print((parsed as ParsedNormal).value.display.auto());
 }
 ```
 
@@ -200,7 +200,7 @@ final profile = StorageProfile(
 );
 
 final payload = ByteConverter.parse('1500 KB');
-final aligned = payload.roundToProfile(profile, alignment: 'object');
+final aligned = payload.storage.roundToProfile(profile, alignment: 'object');
 print(aligned.asBytes());
 print(payload.alignmentSlack(profile, alignment: 'object').asBytes());
 ````
@@ -270,9 +270,9 @@ print(snapshot.toMarkdownTable());
 ## Localization & intl
 
 ```dart
-enableByteConverterIntl();
+enableIntlFormatting(); // see Formatting → Locale-aware formatting
 
-final localized = ByteConverter.parse('123456 KB').toHumanReadableAuto(
+final localized = ByteConverter.parse('123456 KB').display.auto(
   locale: 'hi_IN',
   fullForm: true,
   minimumFractionDigits: 2,
@@ -283,7 +283,7 @@ print(localized); // १,२३,४५६.00 किलोबाइट्स (hi_
 ```
 
 - Built-in localized unit names cover English (`en`, `en_IN`), German (`de`), French (`fr`), Hindi (`hi`, `hi_IN`), Spanish (`es`), Portuguese (`pt`), Japanese (`ja`), Chinese (`zh`), and Russian (`ru`).
-- Combine with `locale` and `enableByteConverterIntl()` to pick up regional number formatting (e.g., Indian digit grouping with `en_IN` or Devanagari digits with `hi_IN`).
+- Combine with `locale` and a registered number formatter (`registerHumanizeNumberFormatter`, e.g. backed by `intl`) to pick up regional number formatting (e.g., Indian digit grouping with `en_IN` or Devanagari digits with `hi_IN`).
 - Use `registerLocalizedUnitNames` to add or override symbols for additional locales as needed.
 
 ## Namespace APIs

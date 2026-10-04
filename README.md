@@ -35,7 +35,7 @@
 
 ```yaml
 dependencies:
-  byte_converter: ^2.7.0
+  byte_converter: ^3.0.0
 ```
 
 ### Basic Usage
@@ -74,13 +74,25 @@ import 'package:byte_converter/byte_converter.dart';
 // 🔥 Full (statistics, streaming, interop)
 import 'package:byte_converter/byte_converter_full.dart';
 
-// 🌍 Localization (with intl package)
-import 'package:byte_converter/byte_converter_intl.dart';
-
-// 🪶 Lightweight (built-in number formatter for en, de, fr, es, pt, ja, zh, ru;
-//    does not call into package:intl)
+// 🪶 Locale-aware numbers without extra dependencies
+//    (built-in separators for en, de, fr, es, pt, ja, zh, ru)
 import 'package:byte_converter/byte_converter_lite.dart';
 ```
+
+> The package has **no runtime dependencies**. To format numbers with
+> `package:intl`, register a formatter once:
+>
+> ```dart
+> registerHumanizeNumberFormatter((value, o) {
+>   final locale = o.locale;
+>   if (locale == null || locale.isEmpty) return ''; // '' = use the default
+>   final f = NumberFormat.decimalPattern(locale)
+>     ..minimumFractionDigits = o.minimumFractionDigits ?? 0
+>     ..maximumFractionDigits =
+>         o.maximumFractionDigits ?? o.minimumFractionDigits ?? o.precision;
+>   return f.format(value);
+> });
+> ```
 
 ---
 
@@ -120,7 +132,7 @@ size.accessibility.screenReader() // "one point five four gigabytes"
 | 🏁 [Getting Started](https://github.com/ArunPrakashG/byte_converter/wiki/Getting-Started) | Installation & setup |
 | 📝 [Usage Guide](https://github.com/ArunPrakashG/byte_converter/wiki/Usage) | Core functionality |
 | 🧰 [Utilities](https://github.com/ArunPrakashG/byte_converter/wiki/Utilities) | Advanced features |
-| 🔄 [Migration Guide](https://github.com/ArunPrakashG/byte_converter/wiki/Migration-Guide) | Upgrading to v2.5.0+ |
+| 🔄 [Upgrading to 3.0](CHANGELOG.md) | Breaking changes and the old → new API table |
 
 ---
 

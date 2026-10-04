@@ -1,50 +1,51 @@
 import 'dart:math' as math;
 
 import 'package:byte_converter/byte_converter_full.dart';
-import 'package:byte_converter/byte_converter_intl.dart' as byte_converter_intl;
 import 'package:test/test.dart';
 
-void main() {
-  setUpAll(byte_converter_intl.enableByteConverterIntl);
+import 'support/intl_formatter.dart';
 
-  tearDownAll(byte_converter_intl.disableByteConverterIntl);
+void main() {
+  setUpAll(() => registerHumanizeNumberFormatter(intlHumanizeFormatter));
+
+  tearDownAll(clearHumanizeNumberFormatter);
 
   group('Advanced formatting and parsing (new features)', () {
     test('Pattern formatting with u/U and lower-k style', () {
       final c = ByteConverter(1500); // ~1.5 kB
-      final t1 = c.formatWith('0.0 u', options: const ByteFormatOptions());
+      final t1 = c.display.pattern('0.0 u', options: const ByteFormatOptions());
       expect(t1, anyOf('1.5 KB', '1.5 kB'));
-      final t2 =
-          c.formatWith('0 U', options: const ByteFormatOptions(fullForm: true));
+      final t2 = c.display
+          .pattern('0 U', options: const ByteFormatOptions(fullForm: true));
       // fullForm via pattern uses localized words; fallback en
       expect(t2.contains('byte'), isTrue);
-      final t3 = c.formatWith('0 u',
+      final t3 = c.display.pattern('0 u',
           options: ByteFormatOptions(siKSymbolCase: SiKSymbolCase.lowerK));
       expect(t3.endsWith(' kB'), isTrue);
     });
 
     test('Full words convenience', () {
       final c = ByteConverter(1024);
-      final text = c.toFullWords();
+      final text = c.display.fullWords();
       expect(text.toLowerCase().contains('byte'), isTrue);
     });
 
     test('Largest whole number helper', () {
       final c = ByteConverter(1536);
-      final lw = c.largestWholeNumber();
+      final lw = c.output.largestWholeNumber();
       expect(lw.value, equals(1));
       expect(lw.symbol, anyOf('KB', 'kB'));
     });
     test('Truncate vs rounding with min/max digits', () {
       final c = ByteConverter(1550); // 1.55 KB (SI)
-      final rounded = c.toHumanReadableAuto(
+      final rounded = c.display.auto(
         minimumFractionDigits: 1,
         maximumFractionDigits: 1,
       );
       // 1.55 -> rounded to 1.6
       expect(rounded, equals('1.6 KB'));
 
-      final truncated = c.toHumanReadableAuto(
+      final truncated = c.display.auto(
         minimumFractionDigits: 1,
         maximumFractionDigits: 1,
         truncate: true,
@@ -55,7 +56,7 @@ void main() {
 
     test('Non-breaking space spacer', () {
       final c = ByteConverter(2048); // ~2.05 KB
-      final text = c.toHumanReadableAuto(nonBreakingSpace: true);
+      final text = c.display.auto(nonBreakingSpace: true);
       // Ensure NBSP present between number and unit
       expect(text.contains('\u00A0'), isTrue);
       // And absence of regular space at that boundary
@@ -70,7 +71,7 @@ void main() {
     });
     test('ByteConverter: useBits + forceUnit (SI bits)', () {
       final c = ByteConverter(1000000); // 1,000,000 bytes -> 8,000,000 bits
-      final text = c.toHumanReadableAuto(
+      final text = c.display.auto(
         useBits: true,
         minimumFractionDigits: 1,
         maximumFractionDigits: 1,
@@ -84,7 +85,7 @@ void main() {
 
     test('fullForm with custom fullForms for bits', () {
       final c = ByteConverter(2000); // 16,000 bits
-      final text = c.toHumanReadableAutoWith(
+      final text = c.display.format(
         const ByteFormatOptions(
           fullForm: true,
           fullForms: {'kilobits': 'kilobités'},
@@ -97,7 +98,7 @@ void main() {
 
     test('Locale: decimal comma with forced unit', () {
       final c = ByteConverter(1920); // 1.92 KB
-      final text = c.toHumanReadableAuto(
+      final text = c.display.auto(
         separator: ',',
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
@@ -121,10 +122,10 @@ void main() {
 
     test('Precision vs min/max fraction digits', () {
       final c = ByteConverter(1500); // 1.5 KB (SI)
-      final onlyPrecision = c.toHumanReadableAuto(precision: 3);
+      final onlyPrecision = c.display.auto(precision: 3);
       expect(onlyPrecision, equals('1.5 KB')); // trimmed trailing zeros
 
-      final fixedTwo = c.toHumanReadableAuto(
+      final fixedTwo = c.display.auto(
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       );
@@ -133,12 +134,12 @@ void main() {
 
     test('Spacer overrides showSpace', () {
       final c = ByteConverter(1024); // ~1.02 KB (SI)
-      final text = c.toHumanReadableAuto(spacer: '_');
+      final text = c.display.auto(spacer: '_');
       expect(text, equals('1.02_KB'));
     });
 
     test('Signed zero formatting for sizes and rates', () {
-      final s = ByteConverter(0).toHumanReadableAuto(signed: true);
+      final s = ByteConverter(0).display.auto(signed: true);
       expect(s, equals(' 0 B'));
 
       final r =
@@ -148,7 +149,7 @@ void main() {
 
     test('ByteConverter: JEDEC forced unit', () {
       final c = ByteConverter(1024 * 1024); // 1 MiB
-      final text = c.toHumanReadableAuto(
+      final text = c.display.auto(
         standard: ByteStandard.jedec,
         forceUnit: 'KB',
       );
@@ -157,7 +158,7 @@ void main() {
 
     test('ByteConverter: useBits with forced byte unit maps to bit unit', () {
       final c = ByteConverter(1000); // 8000 bits
-      final text = c.toHumanReadableAuto(
+      final text = c.display.auto(
         useBits: true,
         forceUnit: 'KB', // maps to 'kb' for bits
         spacer: '',
@@ -200,7 +201,7 @@ void main() {
 
     test('Locale-aware formatting applies decimal and grouping separators', () {
       final c = ByteConverter(123456789); // ~123.456789 MB
-      final text = c.toHumanReadableAuto(
+      final text = c.display.auto(
         locale: 'de_DE',
         forceUnit: 'MB',
         minimumFractionDigits: 2,
@@ -211,11 +212,11 @@ void main() {
 
     test('Locale-aware formatting honors grouping toggle', () {
       final c = ByteConverter(9876543210);
-      final grouped = c.toHumanReadableAuto(
+      final grouped = c.display.auto(
         locale: 'en_US',
         forceUnit: 'B',
       );
-      final ungrouped = c.toHumanReadableAuto(
+      final ungrouped = c.display.auto(
         locale: 'en_US',
         forceUnit: 'B',
         useGrouping: false,
@@ -226,7 +227,7 @@ void main() {
 
     test('Unknown locale falls back to default separators', () {
       final c = ByteConverter(1500);
-      final text = c.toHumanReadableAuto(
+      final text = c.display.auto(
         locale: 'xx_YY',
         minimumFractionDigits: 1,
         maximumFractionDigits: 1,
@@ -236,7 +237,7 @@ void main() {
 
     test('Locale full-form names use built-in translations', () {
       final c = ByteConverter(2000);
-      final text = c.toHumanReadableAuto(
+      final text = c.display.auto(
         locale: 'fr_FR',
         fullForm: true,
         forceUnit: 'KB',
@@ -253,7 +254,7 @@ void main() {
       });
 
       final size = ByteConverter(1024);
-      final text = size.toHumanReadableAuto(
+      final text = size.display.auto(
         locale: 'es_ES',
         fullForm: true,
         forceUnit: 'KB',
@@ -262,14 +263,14 @@ void main() {
       );
       expect(text, equals('1 kilobytes-es'));
 
-      final bits = ByteConverter(1024).toHumanReadableAuto(
-        locale: 'es_ES',
-        fullForm: true,
-        useBits: true,
-        forceUnit: 'kb',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      );
+      final bits = ByteConverter(1024).display.auto(
+            locale: 'es_ES',
+            fullForm: true,
+            useBits: true,
+            forceUnit: 'kb',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
+          );
       expect(bits, equals('8 kilobits-es'));
 
       clearLocalizedUnitNames('es');

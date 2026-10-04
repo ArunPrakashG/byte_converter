@@ -38,17 +38,17 @@ void main(List<String> args) {
     _Bench('humanize(size si)', () {
       final v = sizes[rnd.nextInt(sizes.length)];
       final c = ByteConverter(v);
-      c.toHumanReadableAuto(standard: ByteStandard.si);
+      c.display.auto(standard: ByteStandard.si);
     }),
     _Bench('humanize(size iec bits)', () {
       final v = sizes[rnd.nextInt(sizes.length)];
       final c = ByteConverter(v);
-      c.toHumanReadableAuto(standard: ByteStandard.iec, useBits: true);
+      c.display.auto(standard: ByteStandard.iec, useBits: true);
     }),
     _Bench('compound(size)', () {
       final v = sizes[rnd.nextInt(sizes.length)];
       final c = ByteConverter(v);
-      c.toHumanReadableCompound();
+      c.display.compound();
     }),
     _Bench('parse(size si)', () {
       ByteConverter.parse('1.5 GB');

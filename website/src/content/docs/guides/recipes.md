@@ -112,8 +112,8 @@ void main(List<String> args) {
       : (args.contains('--jedec') ? ByteStandard.jedec : ByteStandard.si);
   try {
     final bc = ByteConverter.parse(input, standard: std);
-    print('Auto: ' + bc.toHumanReadableAuto(standard: std));
-    print('MB:   ' + bc.toHumanReadable(SizeUnit.MB));
+    print('Auto: ' + bc.display.auto(standard: std));
+    print('MB:   ' + bc.display.inUnit(SizeUnit.MB));
   } catch (e) {
     print('Error: ' + e.toString());
   }
@@ -136,7 +136,7 @@ class SizeTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final parsed = ByteConverter.parse(sizeText);
-    final formatted = parsed.toHumanReadableAuto(
+    final formatted = parsed.display.auto(
       standard: ByteStandard.si,
       minimumFractionDigits: 1,
       maximumFractionDigits: 1,
@@ -185,7 +185,7 @@ Future<void> main() async {
       } catch (_) {
         parsed = ByteConverter.parse(raw, standard: ByteStandard.si);
       }
-      final human = parsed.toHumanReadableAuto(
+      final human = parsed.display.auto(
         minimumFractionDigits: 1,
         maximumFractionDigits: 1,
       );
@@ -209,7 +209,7 @@ dart run tool/csv_sizes.dart
 final file = ByteConverter.parse('1536 KB');
 
 // French-like decimal comma
-final fr = file.toHumanReadableAuto(
+final fr = file.display.auto(
   separator: ',',
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
@@ -218,7 +218,7 @@ final fr = file.toHumanReadableAuto(
 // => "1,54 KB"
 
 // Spanish-like with sign and forced unit
-final es = file.toHumanReadableAuto(
+final es = file.display.auto(
   separator: ',',
   minimumFractionDigits: 1,
   maximumFractionDigits: 1,
@@ -245,7 +245,7 @@ void showStorageUsage(double usedBytes, double totalBytes) {
   final used = ByteConverter(usedBytes);
   final total = ByteConverter(totalBytes);
 
-  print('Storage: ${used.toHumanReadableAuto()} / ${total.toHumanReadableAuto()}');
+  print('Storage: ${used.display.auto()} / ${total.display.auto()}');
   print(used.compare.percentageBar(total, width: 20));
   print('${used.compare.percentOf(total).toStringAsFixed(1)}% used');
 }
@@ -267,21 +267,6 @@ void announceFileSize(ByteConverter size) {
   // For ARIA labels
   print('<span aria-label="${size.accessibility.ariaLabel}">');
   // <span aria-label="File size: 1.5 megabytes">
-}
-```
-
-## Track download progress with relative time
-
-```dart
-import 'package:byte_converter/byte_converter.dart';
-
-void showProgress(Duration elapsed, Duration total) {
-  final remaining = total - elapsed;
-
-  print('Elapsed: ${elapsed.relative}');
-  print('Remaining: ${remaining.fromNow}');
-  print(RelativeTime.progress(elapsed, total));
-  // "2m / 5m (40%)"
 }
 ```
 
@@ -310,37 +295,6 @@ if (!canUploadToGithub(file)) {
 }
 ```
 
-## Format large numbers with SI prefixes
-
-```dart
-import 'package:byte_converter/byte_converter.dart';
-
-void displayMetrics(int requests, int latencyNs) {
-  print('Requests: ${SINumber.humanize(requests)}');      // "1.5M"
-  print('Latency: ${SINumber.humanize(latencyNs, unit: 's')}'); // "150µs"
-}
-```
-
-## Show file rankings with ordinals
-
-```dart
-import 'package:byte_converter/byte_converter.dart';
-
-void showRanking(List<(String, ByteConverter)> files) {
-  files.sort((a, b) => b.$2.bytes.compareTo(a.$2.bytes));
-
-  for (var i = 0; i < files.length; i++) {
-    final (name, size) = files[i];
-    print('${(i + 1).ordinal}: $name (${size.toHumanReadableAuto()})');
-  }
-}
-
-// Output:
-// 1st: video.mp4 (1.5 GB)
-// 2nd: archive.zip (500 MB)
-// 3rd: document.pdf (2.5 MB)
-```
-
 ## Track bandwidth over time
 
 ```dart
@@ -351,9 +305,9 @@ final accumulator = BandwidthAccumulator();
 void onDataReceived(int bytes) {
   accumulator.add(ByteConverter(bytes.toDouble()));
 
-  print('Total: ${accumulator.total.toHumanReadableAuto()}');
-  print('Average: ${accumulator.average.toHumanReadableAuto()}');
-  print('Peak: ${accumulator.peak.toHumanReadableAuto()}');
+  print('Total: ${accumulator.total.display.auto()}');
+  print('Average: ${accumulator.average.display.auto()}');
+  print('Peak: ${accumulator.peak.display.auto()}');
 }
 ```
 

@@ -22,7 +22,7 @@
 ///
 /// **Localization (basic):**
 /// - Unit name registration functions
-/// - For full i18n with intl package, use `byte_converter_intl.dart`
+/// - For `package:intl` number formatting, see [registerHumanizeNumberFormatter]
 ///
 /// For most use cases, the standard import is sufficient:
 /// ```dart
@@ -40,6 +40,24 @@ library;
 // ─────────────────────────────────────────────────────────────────────────────
 
 export 'byte_converter.dart';
+
+/// Bandwidth accumulation over time
+export 'src/accumulator/bandwidth_accumulator.dart';
+
+/// Bit-level operations (alignment, cache lines)
+export 'src/bits/bit_operations.dart';
+
+/// Common byte-size constants
+export 'src/constants/byte_constants.dart';
+
+/// Rounding helpers for sizes
+export 'src/utilities/byte_rounding.dart';
+
+/// Signed (negative) size/delta display helpers
+export 'src/utilities/negative_value.dart';
+
+/// Input validation helpers (file size limits, quotas)
+export 'src/validation/byte_validation.dart';
 
 /// Statistical aggregation of byte values (sum, avg, percentiles)
 export 'src/byte_stats.dart';

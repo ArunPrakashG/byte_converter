@@ -31,7 +31,7 @@ void main(List<String> args) {
         _die('Error: ${r.error?.message}');
       }
       final bytes = r.value!;
-      stdout.writeln(bytes.toHumanReadableAuto(standard: standard));
+      stdout.writeln(bytes.display.auto(standard: standard));
       break;
     case 'rate':
       if (rest.isEmpty) {
@@ -116,7 +116,7 @@ void main(List<String> args) {
       final truncate = rest.contains('--truncate');
       final nbsp = rest.contains('--nbsp');
       if (pattern != null && pattern.isNotEmpty) {
-        stdout.writeln(c.formatWith(pattern,
+        stdout.writeln(c.display.pattern(pattern,
             options: ByteFormatOptions(
               useBytes: !useBits,
               truncate: truncate,
@@ -127,7 +127,7 @@ void main(List<String> args) {
               fixedWidth: fixedWidth,
             )));
       } else {
-        stdout.writeln(c.toHumanReadableAuto(
+        stdout.writeln(c.display.auto(
             standard: standard,
             useBits: useBits,
             truncate: truncate,
@@ -155,7 +155,7 @@ void main(List<String> args) {
       if (!r.isSuccess) {
         _die('Error: ${r.error?.message}');
       }
-      stdout.writeln(r.value!.toHumanReadableAuto(standard: standard));
+      stdout.writeln(r.value!.display.auto(standard: standard));
       break;
     case 'os-parse':
       if (rest.isEmpty) {
@@ -173,7 +173,7 @@ void main(List<String> args) {
       if (!r.isSuccess) {
         _die('Error: ${r.error?.message}');
       }
-      stdout.writeln(r.value!.toHumanReadableAuto());
+      stdout.writeln(r.value!.display.auto());
       break;
     case 'transfer-plan':
       // bytec transfer-plan "<size>" --rate "<rate>" [--window "<rate>,<seconds>" ...] [--throttle x] [--elapsed s]

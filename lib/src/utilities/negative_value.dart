@@ -1,5 +1,6 @@
 import '../big_byte_converter.dart';
 import '../byte_converter_base.dart';
+import '../namespaces.dart';
 
 /// Modes for displaying negative byte values.
 enum NegativeDisplayMode {
@@ -234,7 +235,7 @@ abstract class NegativeByteFormatter {
     final isNegative = bytes < 0;
     final absBytes = bytes.abs();
     final converter = ByteConverter(absBytes);
-    final baseStr = converter.toHumanReadableAuto(precision: decimals);
+    final baseStr = converter.display.auto(precision: decimals);
 
     if (options.mode == NegativeDisplayMode.custom &&
         options.customFormatter != null) {
@@ -275,7 +276,7 @@ abstract class NegativeByteFormatter {
     }
 
     final converter = ByteConverter(delta.absoluteDifference);
-    final baseStr = converter.toHumanReadableAuto(precision: decimals);
+    final baseStr = converter.display.auto(precision: decimals);
 
     if (options.mode == NegativeDisplayMode.custom &&
         options.customFormatter != null) {
@@ -321,8 +322,8 @@ abstract class NegativeByteFormatter {
     final toConverter = ByteConverter(toBytes);
     final delta = SizeDelta(fromBytes, toBytes);
 
-    final fromStr = fromConverter.toHumanReadableAuto(precision: decimals);
-    final toStr = toConverter.toHumanReadableAuto(precision: decimals);
+    final fromStr = fromConverter.display.auto(precision: decimals);
+    final toStr = toConverter.display.auto(precision: decimals);
     final deltaStr = delta.format(decimals: decimals);
 
     if (showPercentage && !delta.isUnchanged) {
@@ -342,7 +343,7 @@ abstract class NegativeByteFormatter {
   }) {
     final absBytes = bytes.abs();
     final converter = ByteConverter(absBytes);
-    final baseStr = converter.toHumanReadableAuto(precision: decimals);
+    final baseStr = converter.display.auto(precision: decimals);
 
     if (bytes > 0) {
       return '$upArrow $baseStr';

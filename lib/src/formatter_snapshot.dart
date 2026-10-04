@@ -1,4 +1,5 @@
 import 'byte_converter_base.dart';
+import 'namespaces.dart';
 import 'data_rate.dart';
 import 'format_options.dart';
 
@@ -89,7 +90,7 @@ class FormatterSnapshot {
             rows.add([
               formattedSample,
               _optionLabeler(option),
-              converter.toHumanReadableAutoWith(option),
+              converter.display.format(option),
             ]);
           }
         }

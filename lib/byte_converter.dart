@@ -4,18 +4,20 @@
 ///
 /// **Import Options:**
 /// ```dart
-/// // Core functionality (this import)
+/// // Core: sizes, rates, parsing, formatting, display/output/compare/
+/// // accessibility/storage/rate namespaces, transfer planning
 /// import 'package:byte_converter/byte_converter.dart';
 ///
-/// // Full library with BigInt, statistics, streaming
+/// // Everything above plus statistics, streaming, bit operations,
+/// // validation, accumulators, interop and unit-name localization
 /// import 'package:byte_converter/byte_converter_full.dart';
 ///
-/// // Localization support (includes intl package)
-/// import 'package:byte_converter/byte_converter_intl.dart';
-///
-/// // Lightweight (no intl dependency)
+/// // Built-in locale number formatting (no extra dependency)
 /// import 'package:byte_converter/byte_converter_lite.dart';
 /// ```
+///
+/// This package has no runtime dependencies. To format numbers with
+/// `package:intl`, register a formatter with [registerHumanizeNumberFormatter].
 library;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -50,9 +52,12 @@ export 'src/extensions.dart';
 /// Formatting options for humanized output
 export 'src/format_options.dart' show ByteFormatOptions;
 
-/// Enums used by the formatting options (SI "kB" case, unit policy, rounding)
+/// Pluggable number formatter hook (use it to bring your own i18n, e.g. intl)
+export 'src/humanize_number_format.dart';
+
+/// Humanize options (passed to number formatters) and its enums
 export 'src/humanize_options.dart'
-    show FormattingRoundingMode, SiKSymbolCase, UnitPolicy;
+    show FormattingRoundingMode, HumanizeOptions, SiKSymbolCase, UnitPolicy;
 
 /// Namespace extensions: display, output, compare, accessibility, storage, rate
 export 'src/namespaces.dart';

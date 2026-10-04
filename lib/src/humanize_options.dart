@@ -126,7 +126,7 @@ class HumanizeOptions {
   /// Force a specific unit symbol; disables auto-scaling when set.
   final String? forceUnit;
 
-  /// Locale used for number formatting when intl adapter is enabled.
+  /// Locale used for number formatting when a number formatter is registered.
   final String? locale;
 
   /// Whether thousands separators are used when formatting numbers.

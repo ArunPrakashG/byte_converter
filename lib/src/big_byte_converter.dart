@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import '_parsing.dart';
 import 'byte_converter_base.dart';
 import 'byte_enums.dart';
+import 'output/byte_output_formats.dart';
 import 'compound_format.dart';
 // ignore_for_file: non_constant_identifier_names, avoid_equals_and_hash_code_on_mutable_classes, prefer_constructors_over_static_methods
 import 'format_options.dart';
@@ -683,8 +684,8 @@ class BigByteConverter implements Comparable<BigByteConverter> {
   /// given [standard]. For example, 1536 B under SI becomes (1, 'KB').
   ({int value, String symbol}) largestWholeNumber(
       {ByteStandard standard = ByteStandard.si, bool useBytes = true}) {
-    return toByteConverter()
-        .largestWholeNumber(standard: standard, useBytes: useBytes);
+    return ByteOutputFormats(toByteConverter().bytes, standard: standard)
+        .largestWholeNumber(useBytes: useBytes);
   }
 
   /// Parses a size string into BigByteConverter using the given standard.

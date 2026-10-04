@@ -77,11 +77,11 @@ class ByteFormatOptions {
   final String? forceUnit;
 
   /// Locale identifier (e.g., `en_US`) used for number formatting when the optional
-  /// intl adapter (see `enableByteConverterIntl`) is enabled.
+  /// number formatter (see `registerHumanizeNumberFormatter`) is registered.
   final String? locale;
 
   /// Whether thousands grouping separators should be applied (ignored when locale is unset
-  /// or the intl adapter is disabled).
+  /// or no formatter is registered).
   final bool useGrouping;
 
   /// SI kilo symbol letter-case preference.

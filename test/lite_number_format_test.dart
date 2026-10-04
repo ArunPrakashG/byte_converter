@@ -11,7 +11,7 @@ void main() {
     test('falls back to default when locale is empty', () {
       // Not enabling; humanize should use plain dot decimal without grouping
       final c = ByteConverter(12345.678);
-      final s = c.toHumanReadableAuto(
+      final s = c.display.auto(
         standard: ByteStandard.si,
         // No locale, ensure default ASCII output
       );
@@ -21,7 +21,7 @@ void main() {
     test('en dot decimal and grouping with B', () {
       enableByteConverterLite();
       final c = ByteConverter(12345678);
-      final s = c.toHumanReadableAuto(
+      final s = c.display.auto(
         standard: ByteStandard.si,
         locale: 'en',
         precision: 2,
@@ -30,7 +30,7 @@ void main() {
       // ~12.35 MB -> decimal uses dot; integer part is < 1000 so no grouping
       expect(s, contains('.'));
       // Now force bytes to see grouping on large integer
-      final s2 = c.toHumanReadableAuto(
+      final s2 = c.display.auto(
         standard: ByteStandard.si,
         locale: 'en',
         forceUnit: 'B',
@@ -44,7 +44,7 @@ void main() {
     test('de comma decimal and dot grouping with B', () {
       enableByteConverterLite();
       final c = ByteConverter(12345678);
-      final s = c.toHumanReadableAuto(
+      final s = c.display.auto(
         standard: ByteStandard.si,
         locale: 'de-DE',
         precision: 2,
@@ -53,7 +53,7 @@ void main() {
       // ~12,35 MB uses comma decimal
       expect(s, contains(','));
       // Force bytes to check dot grouping
-      final s2 = c.toHumanReadableAuto(
+      final s2 = c.display.auto(
         standard: ByteStandard.si,
         locale: 'de-DE',
         forceUnit: 'B',
@@ -67,7 +67,7 @@ void main() {
     test('fr comma decimal and space grouping with B', () {
       enableByteConverterLite();
       final c = ByteConverter(987654321);
-      final s = c.toHumanReadableAuto(
+      final s = c.display.auto(
         standard: ByteStandard.si,
         locale: 'fr',
         precision: 2,
@@ -76,7 +76,7 @@ void main() {
       // ~987,65 MB (comma as decimal)
       expect(s.contains(','), isTrue);
       // Force bytes to check space grouping in the integer portion
-      final s2 = c.toHumanReadableAuto(
+      final s2 = c.display.auto(
         standard: ByteStandard.si,
         locale: 'fr',
         forceUnit: 'B',
@@ -91,7 +91,7 @@ void main() {
     test('respects min/max fraction digits', () {
       enableByteConverterLite();
       final c = ByteConverter(1500); // ~1.5 KB
-      final s = c.toHumanReadableAuto(
+      final s = c.display.auto(
         standard: ByteStandard.si,
         locale: 'en',
         minimumFractionDigits: 3,
@@ -103,7 +103,7 @@ void main() {
     test('useGrouping=false disables thousands separators', () {
       enableByteConverterLite();
       final c = ByteConverter(12345678);
-      final s = c.toHumanReadableAuto(
+      final s = c.display.auto(
         standard: ByteStandard.si,
         locale: 'en',
         precision: 2,

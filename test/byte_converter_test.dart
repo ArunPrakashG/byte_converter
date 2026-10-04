@@ -82,21 +82,21 @@ void main() {
   group('String Formatting', () {
     test('toHumanReadable', () {
       final converter = ByteConverter(1536);
-      expect(converter.toHumanReadable(SizeUnit.KB), equals('1.54 KB'));
-      expect(converter.toHumanReadable(SizeUnit.B), equals('1536 B'));
+      expect(converter.display.inUnit(SizeUnit.KB), equals('1.54 KB'));
+      expect(converter.display.inUnit(SizeUnit.B), equals('1536 B'));
     });
 
     test('integer values', () {
       final converter = ByteConverter(1000);
-      expect(converter.toHumanReadable(SizeUnit.B), equals('1000 B'));
-      expect(converter.toHumanReadable(SizeUnit.KB), equals('1 KB'));
+      expect(converter.display.inUnit(SizeUnit.B), equals('1000 B'));
+      expect(converter.display.inUnit(SizeUnit.KB), equals('1 KB'));
     });
 
     test('decimal values', () {
       final converter = ByteConverter(1234.5);
-      expect(converter.toHumanReadable(SizeUnit.B), equals('1234.5 B'));
+      expect(converter.display.inUnit(SizeUnit.B), equals('1234.5 B'));
       expect(
-        converter.toHumanReadable(SizeUnit.KB, precision: 3),
+        converter.display.inUnit(SizeUnit.KB, precision: 3),
         equals('1.235 KB'),
       );
     });
@@ -115,9 +115,9 @@ void main() {
 
     test('auto humanize SI and IEC', () {
       final c = ByteConverter(1024);
-      expect(c.toHumanReadableAuto(), equals('1.02 KB'));
+      expect(c.display.auto(), equals('1.02 KB'));
       expect(
-        c.toHumanReadableAuto(standard: ByteStandard.iec),
+        c.display.auto(standard: ByteStandard.iec),
         equals('1 KiB'),
       );
     });
@@ -187,7 +187,7 @@ void main() {
 
     test('fullForm output and custom fullForms', () {
       final c = ByteConverter(1500);
-      final text = c.toHumanReadableAutoWith(
+      final text = c.display.format(
         const ByteFormatOptions(
           useBytes: true,
           fullForm: true,
@@ -195,7 +195,7 @@ void main() {
       );
       expect(text, equals('1.5 kilobytes'));
 
-      final text2 = c.toHumanReadableAutoWith(
+      final text2 = c.display.format(
         const ByteFormatOptions(
           useBytes: true,
           fullForm: true,
@@ -207,7 +207,7 @@ void main() {
 
     test('separator, spacer, min/max fraction digits, signed, forced unit', () {
       final c = ByteConverter(1920);
-      final text = c.toHumanReadableAuto(
+      final text = c.display.auto(
         minimumFractionDigits: 1,
         maximumFractionDigits: 1,
         separator: ',',
@@ -236,7 +236,7 @@ void main() {
   group('Format options helper', () {
     test('ByteConverter uses options', () {
       final bc = ByteConverter(1024);
-      final text = bc.toHumanReadableAutoWith(
+      final text = bc.display.format(
         const ByteFormatOptions(standard: ByteStandard.iec, useBytes: true),
       );
       expect(text, equals('1 KiB'));

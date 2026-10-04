@@ -13,21 +13,11 @@ import 'utilities/network_rate.dart';
 import 'utilities/storage_alignment.dart' show StorageNamespace;
 
 export 'accessibility/byte_accessibility.dart';
-export 'accumulator/bandwidth_accumulator.dart';
-export 'bits/bit_operations.dart';
 export 'comparison/byte_comparison.dart';
-export 'constants/byte_constants.dart';
 export 'display/byte_display_options.dart';
 export 'output/byte_output_formats.dart';
-export 'utilities/byte_rounding.dart';
-export 'utilities/natural_time_delta.dart';
-export 'utilities/negative_value.dart';
 export 'utilities/network_rate.dart';
-export 'utilities/ordinal.dart';
-export 'utilities/relative_time.dart';
-export 'utilities/si_number.dart';
 export 'utilities/storage_alignment.dart';
-export 'validation/byte_validation.dart';
 
 /// Extension providing namespace accessors for [ByteConverter].
 ///

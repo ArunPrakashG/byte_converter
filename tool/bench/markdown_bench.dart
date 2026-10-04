@@ -85,12 +85,13 @@ void main(List<String> args) async {
   // Bench 1: Humanize (SI, bytes)
   final bcSiHuman = runBestOf(() {
     final v = samples[rnd.nextInt(samples.length)];
-    ByteConverter(v).toHumanReadableAuto(standard: ByteStandard.si);
+    ByteConverter(v).display.auto(standard: ByteStandard.si);
   });
   final bcSiHumanRich = runBestOf(() {
     final v = samples[rnd.nextInt(samples.length)];
-    ByteConverter(v).toHumanReadableAutoWith(
-        const ByteFormatOptions(locale: 'en', useGrouping: true));
+    ByteConverter(v)
+        .display
+        .format(const ByteFormatOptions(locale: 'en', useGrouping: true));
   });
   final fsSiHuman = runBestOf(() {
     final v = samples[rnd.nextInt(samples.length)];
@@ -100,8 +101,7 @@ void main(List<String> args) async {
   // Bench 1b: Humanize (IEC, bits) — no direct competitor in tested set
   final bcIecBitsHuman = runBestOf(() {
     final v = samples[rnd.nextInt(samples.length)];
-    ByteConverter(v)
-        .toHumanReadableAuto(standard: ByteStandard.iec, useBits: true);
+    ByteConverter(v).display.auto(standard: ByteStandard.iec, useBits: true);
   });
 
   // Bench 2: Parse (common forms)
@@ -120,7 +120,7 @@ void main(List<String> args) async {
   // Bench 4: Compound formatting
   final bcCompound = runBestOf(() {
     final v = samples[rnd.nextInt(samples.length)];
-    ByteConverter(v).toHumanReadableCompound();
+    ByteConverter(v).display.compound();
   });
 
   // Bench 5: BigByteConverter humanize
@@ -132,18 +132,18 @@ void main(List<String> args) async {
     BigByteConverter(BigInt.from(v)).toHumanReadableAuto();
   });
 
-  // Bench 6: Localized humanize (en) using intl
+  // Bench 6: Localized humanize (en) (no formatter registered)
   final bcLocalized = runBestOf(() {
     final v = samples[rnd.nextInt(samples.length)];
-    ByteConverter(v)
-        .toHumanReadableAutoWith(const ByteFormatOptions(locale: 'en'));
+    ByteConverter(v).display.format(const ByteFormatOptions(locale: 'en'));
   });
 
   // Bench 7: Pattern formatting
   final bcPattern = runBestOf(() {
     final v = samples[rnd.nextInt(samples.length)];
     ByteConverter(v)
-        .formatWith('S0.0 u', options: const ByteFormatOptions(signed: true));
+        .display
+        .pattern('S0.0 u', options: const ByteFormatOptions(signed: true));
   });
 
   // P² vs TDigest (throughput only)
