@@ -70,7 +70,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           version="${GITHUB_REF_NAME#v}"
-          tool/ci/release_notes.sh "$version" > notes.md
+          bash tool/ci/release_notes.sh "$version" > notes.md
           flags=()
           [[ "$version" == *-* ]] && flags+=(--prerelease)
           gh release create "$GITHUB_REF_NAME" \
