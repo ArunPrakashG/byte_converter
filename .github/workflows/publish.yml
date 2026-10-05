@@ -1,21 +1,73 @@
-# Automated publishing from tags like v2.7.0.
-# One-time setup: pub.dev -> package Admin -> Automated publishing ->
-# enable GitHub Actions, repository ArunPrakashG/byte_converter, tag pattern v{{version}}.
+# Publishes to pub.dev when a version tag is pushed, e.g.:
+#   git tag v3.0.1 && git push origin v3.0.1
+#
+# One-time setup on pub.dev (package page -> Admin -> Automated publishing):
+#   - Enable "Publishing from GitHub Actions"
+#   - Repository: ArunPrakashG/byte_converter
+#   - Tag pattern: v{{version}}
+#   - (Recommended) Require environment: pub.dev
+#     and create an environment named "pub.dev" in the GitHub repo settings,
+#     optionally with required reviewers as a manual approval gate.
+#
+# Authentication is OIDC; no pub.dev token is stored in GitHub.
 name: Publish
 
 on:
   push:
     tags:
-      - "v[0-9]+.[0-9]+.[0-9]+*"
+      - "v[0-9]+.[0-9]+.[0-9]+"
+      - "v[0-9]+.[0-9]+.[0-9]+-*"
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
-  publish:
+  verify:
+    name: Verify release
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+      - name: Tag matches pubspec version and changelog entry exists
+        run: tool/ci/check_release.sh "$GITHUB_REF_NAME"
+      - run: dart pub get
+      - run: dart format --output=none --set-exit-if-changed lib bin test example
+      - run: dart analyze --fatal-infos
+      - run: dart test
+      - name: Publish dry run
+        run: dart pub publish --dry-run
+
+  publish:
+    name: Publish to pub.dev
+    needs: verify
+    runs-on: ubuntu-latest
+    environment: pub.dev
     permissions:
-      id-token: write
+      id-token: write # OIDC token for pub.dev automated publishing
     steps:
       - uses: actions/checkout@v4
       - uses: dart-lang/setup-dart@v1
       - run: dart pub get
-      - run: dart test
       - run: dart pub publish --force
+
+  github-release:
+    name: GitHub release
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create release from CHANGELOG
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          tool/ci/release_notes.sh "$version" > notes.md
+          flags=()
+          [[ "$version" == *-* ]] && flags+=(--prerelease)
+          gh release create "$GITHUB_REF_NAME" \
+            --title "$GITHUB_REF_NAME" \
+            --notes-file notes.md \
+            --verify-tag "${flags[@]}"
