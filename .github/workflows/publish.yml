@@ -33,7 +33,7 @@ jobs:
           submodules: true
       - uses: dart-lang/setup-dart@v1
       - name: Tag matches pubspec version and changelog entry exists
-        run: tool/ci/check_release.sh "$GITHUB_REF_NAME"
+        run: bash tool/ci/check_release.sh "$GITHUB_REF_NAME"
       - run: dart pub get
       - run: dart format --output=none --set-exit-if-changed lib bin test example
       - run: dart analyze --fatal-infos
