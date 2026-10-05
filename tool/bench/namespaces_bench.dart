@@ -57,7 +57,7 @@ void main(List<String> args) {
   final baselineTasks = <_Bench>[
     _Bench('humanize(si)', () {
       final c = converters[rnd.nextInt(converters.length)];
-      c.toHumanReadableAuto(standard: ByteStandard.si);
+      c.display.auto(standard: ByteStandard.si);
     }),
   ];
   for (final b in baselineTasks) {

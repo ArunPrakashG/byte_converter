@@ -4,8 +4,8 @@ import '../byte_converter_base.dart';
 ///
 /// Access via the `compare` extension property on [ByteConverter]:
 /// ```dart
-/// final used = ByteConverter.fromGB(75);
-/// final total = ByteConverter.fromGB(100);
+/// final used = ByteConverter.fromGigaBytes(75);
+/// final total = ByteConverter.fromGigaBytes(100);
 ///
 /// print(used.compare.percentOf(total));      // 75.0
 /// print(used.compare.relativeTo(total));     // "75% of"
@@ -26,8 +26,8 @@ class ByteComparison {
   ///
   /// Example:
   /// ```dart
-  /// final used = ByteConverter.fromGB(75);
-  /// final total = ByteConverter.fromGB(100);
+  /// final used = ByteConverter.fromGigaBytes(75);
+  /// final total = ByteConverter.fromGigaBytes(100);
   /// print(used.compare.percentOf(total));  // 75.0
   /// ```
   double percentOf(ByteConverter total) {
@@ -46,8 +46,8 @@ class ByteComparison {
   ///
   /// Example:
   /// ```dart
-  /// final used = ByteConverter.fromGB(75);
-  /// final total = ByteConverter.fromGB(100);
+  /// final used = ByteConverter.fromGigaBytes(75);
+  /// final total = ByteConverter.fromGigaBytes(100);
   /// print(used.compare.percentageBar(total));  // "███████████████░░░░░"
   /// ```
   String percentageBar(
@@ -121,9 +121,9 @@ class ByteComparison {
   ///
   /// Example:
   /// ```dart
-  /// final a = ByteConverter.fromMB(100);
-  /// final b = ByteConverter.fromMB(105);
-  /// final tolerance = ByteConverter.fromMB(10);
+  /// final a = ByteConverter.fromMegaBytes(100);
+  /// final b = ByteConverter.fromMegaBytes(105);
+  /// final tolerance = ByteConverter.fromMegaBytes(10);
   /// print(a.compare.isWithin(tolerance, of: b));  // true
   /// ```
   bool isWithin(ByteConverter range, {required ByteConverter of}) {
@@ -148,8 +148,8 @@ class ByteComparison {
   ///
   /// Example:
   /// ```dart
-  /// final original = ByteConverter.fromMB(100);
-  /// final compressed = ByteConverter.fromMB(25);
+  /// final original = ByteConverter.fromMegaBytes(100);
+  /// final compressed = ByteConverter.fromMegaBytes(25);
   /// print(ByteComparison.compressionRatio(original, compressed));
   /// // "4:1 (75% reduction)"
   /// ```

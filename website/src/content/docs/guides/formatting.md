@@ -1,7 +1,7 @@
 ---
 title: Formatting 🎛️
 ---
-Formatting is powered by the **display namespace** (recommended) or the legacy `toHumanReadable(...)` / `toHumanReadableAuto(...)` methods.
+Formatting is powered by the **display namespace** (`size.display.auto()`, `.pattern()`, `.inUnit()`, `.compound()`, …). `DataRate` and `BigByteConverter` keep their own `toHumanReadableAuto(...)`.
 
 ## Namespace API (Recommended)
 
@@ -74,51 +74,51 @@ class ByteFormatOptions {
 final img = ByteConverter.fromMegaBytes(1536);
 
 // Auto-scale SI
-img.toHumanReadableAuto();
+img.display.auto();
 
 // IEC with full form
-img.toHumanReadableAuto(
+img.display.auto(
   standard: ByteStandard.iec,
   fullForm: true,
 ); // e.g., "1.5 gibibytes"
 
 // Locale-ish: comma decimal separator and min/max digits
-img.toHumanReadableAuto(
+img.display.auto(
   separator: ',',
   minimumFractionDigits: 1,
   maximumFractionDigits: 1,
 );
 
 // Force unit to MB regardless of value
-img.toHumanReadableAuto(forceUnit: 'MB');
+img.display.auto(forceUnit: 'MB');
 ```
 
 ### Spaces, NBSP, and truncation
 
 ```dart
 // Non-breaking space (NBSP) between number and unit
-ByteConverter(2048).toHumanReadableAuto(nonBreakingSpace: true); // e.g., "2.05\u00A0KB"
+ByteConverter(2048).display.auto(nonBreakingSpace: true); // e.g., "2.05\u00A0KB"
 
 // Truncate vs rounding when using min/max fraction digits
-ByteConverter(1550).toHumanReadableAuto(minimumFractionDigits: 1, maximumFractionDigits: 1); // 1.6 KB
-ByteConverter(1550).toHumanReadableAuto(minimumFractionDigits: 1, maximumFractionDigits: 1, truncate: true); // 1.5 KB
+ByteConverter(1550).display.auto(minimumFractionDigits: 1, maximumFractionDigits: 1); // 1.6 KB
+ByteConverter(1550).display.auto(minimumFractionDigits: 1, maximumFractionDigits: 1, truncate: true); // 1.5 KB
 ```
 
 ### SI k-case styling
 
 ```dart
 // Default renders "KB"; opt into "kB" via:
-ByteConverter(1500).toHumanReadableAuto(siKSymbolCase: SiKSymbolCase.lowerK); // 1.5 kB
+ByteConverter(1500).display.auto(siKSymbolCase: SiKSymbolCase.lowerK); // 1.5 kB
 ```
 
 ### Fixed width alignment
 
 ```dart
 // Pad the numeric portion with spaces for alignment in tables/CLIs
-ByteConverter(1500).toHumanReadableAuto(forceUnit: 'KB', fixedWidth: 6); // "   1.5 KB"
+ByteConverter(1500).display.auto(forceUnit: 'KB', fixedWidth: 6); // "   1.5 KB"
 
 // Signed alignment: include the sign in the width calculation
-ByteConverter(1500).toHumanReadableAuto(
+ByteConverter(1500).display.auto(
   forceUnit: 'KB',
   fixedWidth: 6,
   signed: true,
@@ -135,11 +135,11 @@ ByteConverter(1500).toHumanReadableAuto(
 - Numeric placeholder: any token matching `0[#0.,]*` is replaced with the numeric text.
 
 ```dart
-ByteConverter(1500).formatWith('0.0 u'); // "1.5 KB"
-ByteConverter(1500).formatWith('0 U', options: const ByteFormatOptions(fullForm: true)); // e.g., "1 kilobytes"
-ByteConverter(1500).formatWith('0000 u', options: const ByteFormatOptions(forceUnit: 'KB', fixedWidth: 4)); // zero-padded pattern is ignored; fixedWidth controls padding
+ByteConverter(1500).display.pattern('0.0 u'); // "1.5 KB"
+ByteConverter(1500).display.pattern('0 U', options: const ByteFormatOptions(fullForm: true)); // e.g., "1 kilobytes"
+ByteConverter(1500).display.pattern('0000 u', options: const ByteFormatOptions(forceUnit: 'KB', fixedWidth: 4)); // zero-padded pattern is ignored; fixedWidth controls padding
 // Explicit sign with pattern token 'S'
-ByteConverter(1500).formatWith('S0.0 u', options: const ByteFormatOptions(signed: true)); // "+1.5 KB"
+ByteConverter(1500).display.pattern('S0.0 u', options: const ByteFormatOptions(signed: true)); // "+1.5 KB"
 ```
 
 ## Fast formatting (ultra-low overhead)
@@ -177,20 +177,19 @@ Use these when you want microsecond-level throughput and don’t need features l
 
 ## Locale-aware formatting (NEW in 2.3.0)
 
-Enable locale-aware number formatting using the optional `byte_converter_intl.dart` entry:
+Locale-aware number formatting is pluggable. Register a formatter once (below uses `package:intl`), then pass `locale:` to any formatting call:
 
 ```dart
 import 'package:byte_converter/byte_converter.dart';
-import 'package:byte_converter/byte_converter_intl.dart';
 
 void main() {
-  // Enable locale-aware formatting
-  enableByteConverterIntl();
+  // Enable locale-aware formatting (see the recipe below)
+  enableIntlFormatting();
 
   final size = ByteConverter(123456789);
 
   // German locale: decimal comma + grouping
-  print(size.toHumanReadableAuto(
+  print(size.display.auto(
     locale: 'de_DE',
     forceUnit: 'MB',
     minimumFractionDigits: 2,
@@ -199,7 +198,7 @@ void main() {
 
   // French locale with full-form units
   final small = ByteConverter(2000);
-  print(small.toHumanReadableAuto(
+  print(small.display.auto(
     locale: 'fr_FR',
     fullForm: true,
     forceUnit: 'KB',
@@ -209,7 +208,7 @@ void main() {
 
   // Disable grouping
   final big = ByteConverter(9876543210);
-  print(big.toHumanReadableAuto(
+  print(big.display.auto(
     locale: 'en_US',
     forceUnit: 'B',
     useGrouping: false,
@@ -219,6 +218,28 @@ void main() {
   disableByteConverterIntl();
 }
 ```
+
+### Enabling intl
+
+```dart
+import 'package:byte_converter/byte_converter.dart';
+import 'package:intl/intl.dart'; // add `intl` to YOUR pubspec
+
+void enableIntlFormatting() {
+  registerHumanizeNumberFormatter((value, o) {
+    final locale = o.locale;
+    if (locale == null || locale.isEmpty) return ''; // '' = use the default
+    final f = NumberFormat.decimalPattern(locale)
+      ..minimumFractionDigits = o.minimumFractionDigits ?? 0
+      ..maximumFractionDigits =
+          o.maximumFractionDigits ?? o.minimumFractionDigits ?? o.precision;
+    if (!o.useGrouping) f.turnOffGrouping();
+    return f.format(value);
+  });
+}
+```
+
+Call `enableIntlFormatting()` once at startup (and `clearHumanizeNumberFormatter()` to undo). `byte_converter` itself has no `intl` dependency; for a handful of common locales you can instead call `enableByteConverterLite()` from `byte_converter_lite.dart`.
 
 ### Lightweight number formatter (no-intl)
 
@@ -233,7 +254,7 @@ void main() {
   final size = ByteConverter(12345678);
 
   // English: dot decimal, comma grouping (force bytes to see grouping clearly)
-  print(size.toHumanReadableAuto(
+  print(size.display.auto(
     locale: 'en',
     forceUnit: 'B',
     minimumFractionDigits: 0,
@@ -242,13 +263,13 @@ void main() {
   )); // e.g., "12,345,678 B"
 
   // German: comma decimal, dot grouping
-  print(size.toHumanReadableAuto(
+  print(size.display.auto(
     locale: 'de-DE',
     precision: 2,
   )); // e.g., "12,35 MB"
 
   // French: comma decimal, space grouping
-  print(size.toHumanReadableAuto(
+  print(size.display.auto(
     locale: 'fr',
     forceUnit: 'B',
     minimumFractionDigits: 0,
@@ -290,7 +311,7 @@ registerLocalizedUnitNames('es', {
 
 // Use with fullForm
 final size = ByteConverter(1024);
-print(size.toHumanReadableAuto(
+print(size.display.auto(
   locale: 'es_ES',
   fullForm: true,
   forceUnit: 'KB',

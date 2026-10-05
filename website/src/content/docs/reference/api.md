@@ -9,8 +9,7 @@ This summarizes the primary surface area. For full details, see code and tests.
 | -------------------------- | -------------------------------------------------------------------------------------------- |
 | `byte_converter.dart`      | Core: `ByteConverter`, `DataRate`, `BigByteConverter`, namespaces, extensions                |
 | `byte_converter_full.dart` | All: `ByteStats`, `TDigest`, `StreamInstrumentation`, `InteropAdapters`, `FormatterSnapshot` |
-| `byte_converter_intl.dart` | Localization with `intl` package                                                             |
-| `byte_converter_lite.dart` | Lightweight, no `intl` dependency                                                            |
+| `byte_converter_lite.dart` | Built-in locale number formatter (no `intl` needed)                                          |
 
 ## Namespaces (Recommended API)
 
@@ -45,12 +44,10 @@ size.bitOps       // BitOperations - totalBits, isPowerOfTwo, isAlignedTo(), ali
   - SI getters: `kiloBytes`, `megaBytes`, `gigaBytes`, `teraBytes`, `petaBytes`
   - IEC getters: `kibiBytes`, `mebiBytes`, `gibiBytes`, `tebiBytes`, `pebiBytes`
   - `+`, `-`, `*`, `/`, comparisons, `compareTo`
-  - Rounding: `roundToSector|Block|Page|Word`
-  - Storage profiles : `roundToProfile(StorageProfile, {alignment, rounding})`, `alignmentSlack(...)`, `isAligned(...)`
-  - Time: `transferTimeAt(bitsPerSecond)`, `downloadTimeAt(bytesPerSecond)`
+  - Storage, rate and rounding helpers live in namespaces: `size.storage.roundToBlock()`, `size.storage.roundToProfile(...)`, `size.rate.transferTimeAt(...)`
 - Formatting:
-  - `toHumanReadable(SizeUnit unit, {precision})`
-  - `toHumanReadableAuto({...})` and `toHumanReadableAutoWith(ByteFormatOptions)`
+  - `size.display.auto({...})`, `.format(ByteFormatOptions)`, `.inUnit(SizeUnit)`, `.pattern(...)`, `.compound()`, `.fullWords()`
+  - `size.output.largestWholeNumber()`
 - Parsing:
   - `static parse(String input, {standard = ByteStandard.si})`
   - `static tryParse(String input, {standard}) -> ParseResult<ByteConverter>` (NEW in 2.3.0)
@@ -196,31 +193,6 @@ Helpers for modeling protocol/link overhead and computing payload throughput:
   - Overhead-aware ETA helpers
 
 See [Utilities](/guides/utilities/) → Network Overhead for examples.
-## Time & Number Helpers
-
-- Relative time formatting:
-  - `RelativeTime.format(Duration) -> String` — e.g., "2 hours"
-  - `RelativeTime.formatAgo(Duration) -> String` — e.g., "2 hours ago"
-  - `RelativeTime.formatFromNow(Duration) -> String` — e.g., "in 2 hours"
-  - Extensions on `Duration` and `DateTime`: `.ago`, `.fromNow`, `.relative`, `.humanRelative`, `.asCountdown`
-
-- Natural time delta:
-  - `NaturalTimeDelta(Duration).natural|precise|short|countdown` — friendly descriptions like "about 5 minutes"
-  - Extension: `Duration.natural`, `Duration.naturalPrecise`, `Duration.naturalShort`, `Duration.countdown`
-
-- SI number formatting:
-  - `SINumber.humanize(num, {precision=2, unit='', space=false}) -> String` — e.g., `1500000` → "1.5M"
-  - `SINumber.humanizeFull(num) -> String` — e.g., "1.5 mega"
-  - `SINumber.engineering(num, {precision=2}) -> String` — e.g., "1.5 × 10³"
-  - `SINumber.parse(String) -> double?` — e.g., "1.5M" → `1500000.0`
-  - Extensions on `num`: `.si`, `.toSI(...)`, `.engineering`
-
-- Ordinal numbers:
-  - `ByteOrdinal.format(int) -> String` — e.g., `21` → "21st"
-  - `ByteOrdinal.getSuffix(int) -> String` — e.g., `42` → "nd"
-  - `ByteOrdinal.toWords(int) -> String` — e.g., `1` → "first"
-  - Extensions on `int`: `.ordinal`, `.ordinalSuffix`, `.ordinalWords`
-
 ## Negative Values & Deltas
 
 - `NegativeByteFormatter.format(double bytes, {NegativeValueOptions options, int decimals=2}) -> String` — display styles for decreases/increases
@@ -233,15 +205,4 @@ See [Utilities](/guides/utilities/) → Network Overhead for examples.
 
 See [Utilities](/guides/utilities/) → Negative Values for detailed examples.
 
-From `byte_converter_intl.dart`:
-
-- `enableByteConverterIntl()` - Enable locale-aware number formatting
-- `disableByteConverterIntl()` - Disable locale-aware formatting
-
-From `byte_converter.dart`:
-
-- `registerLocalizedUnitNames(String locale, Map<String, String> names)` - Register custom unit translations
-- `clearLocalizedUnitNames(String locale)` - Clear custom translations
-- `localizedUnitName(String symbol, {String? locale})` - Look up localized unit name
-- `resolveLocalizedUnitSymbol(String token, {String? locale})` - Reverse map localized tokens to canonical unit symbols
-- `disableDefaultLocalizedUnitNames()` / `enableDefaultLocalizedUnitNames()` - Tree-shakable toggles for built-in localized names
+Number formatting hook (core import): `registerHumanizeNumberFormatter(fn)`, `clearHumanizeNumberFormatter()`, `HumanizeOptions`. See Formatting → Locale-aware formatting for an `intl` recipe.

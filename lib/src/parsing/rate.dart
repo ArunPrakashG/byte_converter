@@ -171,14 +171,6 @@ RateParsingResult _parseRateLiteralInternal({
 
   final resolvedMultiplier = mult!;
 
-  // Special-case: Treat IEC byte unit 'KiB' in rates as unknown under SI/JEDEC as per tests,
-  // while allowing IEC bit rates like 'kibps'. Only trigger for non-IEC standards.
-  if (standard != ByteStandard.iec &&
-      !isBits &&
-      RegExp(r'\bKiB\b', caseSensitive: false).hasMatch(unitStr)) {
-    throw const FormatException('Unknown rate unit: KiB');
-  }
-
   // Enforce: under IEC standard, SI byte symbols like 'MB' are unknown (edge-case test),
   // but allow SI bit rates (e.g., Mbps). Known SI byte symbols end with 'B' and are not IEC prefixed.
   if (standard == ByteStandard.iec && !isBits) {

@@ -1,4 +1,4 @@
-import 'package:byte_converter/byte_converter.dart';
+import 'package:byte_converter/byte_converter_full.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -170,112 +170,6 @@ void main() {
         final rate = acc.rate;
         expect(rate, isNotNull);
         expect(rate!.bytesPerSecond, greaterThan(0));
-      });
-    });
-  });
-
-  group('NaturalTimeDelta', () {
-    group('natural', () {
-      test('less than a second', () {
-        final d = Duration(milliseconds: 500);
-        expect(d.natural, 'less than a second');
-      });
-
-      test('a few seconds', () {
-        final d = Duration(seconds: 3);
-        expect(d.natural, 'a few seconds');
-      });
-
-      test('about N seconds', () {
-        final d = Duration(seconds: 45);
-        expect(d.natural, contains('seconds'));
-      });
-
-      test('about a minute', () {
-        final d = Duration(seconds: 65);
-        expect(d.natural, 'about a minute');
-      });
-
-      test('about N minutes', () {
-        final d = Duration(minutes: 15);
-        expect(d.natural, 'about 15 minutes');
-      });
-
-      test('about an hour', () {
-        final d = Duration(minutes: 65);
-        expect(d.natural, 'about an hour');
-      });
-
-      test('about N hours', () {
-        final d = Duration(hours: 5);
-        expect(d.natural, 'about 5 hours');
-      });
-
-      test('about a day', () {
-        final d = Duration(hours: 30);
-        expect(d.natural, 'about a day');
-      });
-
-      test('about N days', () {
-        final d = Duration(days: 5);
-        expect(d.natural, 'about 5 days');
-      });
-    });
-
-    group('precise', () {
-      test('returns precise format', () {
-        final d = Duration(hours: 2, minutes: 30, seconds: 15);
-        expect(d.naturalPrecise, contains('hour'));
-        expect(d.naturalPrecise, contains('minute'));
-      });
-
-      test('handles single unit', () {
-        final d = Duration(minutes: 5);
-        expect(d.naturalPrecise, '5 minutes');
-      });
-
-      test('handles two units', () {
-        final d = Duration(hours: 1, minutes: 30);
-        expect(d.naturalPrecise, '1 hour and 30 minutes');
-      });
-    });
-
-    group('short', () {
-      test('returns short format', () {
-        final d = Duration(hours: 2, minutes: 30);
-        expect(d.naturalShort, '2h 30m');
-      });
-
-      test('handles seconds', () {
-        final d = Duration(seconds: 45);
-        expect(d.naturalShort, '45s');
-      });
-
-      test('handles days', () {
-        final d = Duration(days: 2, hours: 5);
-        expect(d.naturalShort, '2d 5h');
-      });
-
-      test('handles sub-second', () {
-        final d = Duration(milliseconds: 500);
-        expect(d.naturalShort, '< 1s');
-      });
-    });
-
-    group('countdown', () {
-      test('formats as countdown', () {
-        final d = Duration(minutes: 2, seconds: 30);
-        expect(d.countdown, '2:30');
-      });
-
-      test('includes hours when present', () {
-        final d = Duration(hours: 1, minutes: 5, seconds: 30);
-        expect(d.countdown, '1:05:30');
-      });
-
-      test('pads with zeros', () {
-        final d = Duration(minutes: 5, seconds: 5);
-        expect(d.countdown, '5:05');
       });
     });
   });

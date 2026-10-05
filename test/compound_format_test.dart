@@ -5,7 +5,7 @@ void main() {
   group('Compound formatting', () {
     test('IEC bytes default two parts', () {
       final size = ByteConverter.parse('1234567890');
-      final text = size.toHumanReadableCompound();
+      final text = size.display.compound();
       // 1 GiB 153 MiB (approx) with IEC default
       expect(text, contains('GiB'));
       expect(text, contains('MiB'));
@@ -14,7 +14,7 @@ void main() {
     test('Force smallest unit and maxParts', () {
       final size = ByteConverter.parse('1 GiB + 153 MiB + 385 KiB',
           standard: ByteStandard.iec);
-      final text = size.toHumanReadableCompound(
+      final text = size.display.compound(
         options: CompoundFormatOptions(
             standard: ByteStandard.iec, maxParts: 3, smallestUnit: 'B'),
       );
@@ -23,7 +23,7 @@ void main() {
 
     test('SI bits compound', () {
       final size = ByteConverter.parse('1 MB');
-      final text = size.toHumanReadableCompound(
+      final text = size.display.compound(
         options:
             CompoundFormatOptions(standard: ByteStandard.si, useBits: true),
       );
@@ -42,7 +42,7 @@ void main() {
       // Construct 1 GiB + 1023 MiB to force a 4-digit MiB part
       final size =
           ByteConverter.fromGibiBytes(1) + ByteConverter.fromMebiBytes(1023);
-      final text = size.toHumanReadableCompound(
+      final text = size.display.compound(
         options: const CompoundFormatOptions(
           standard: ByteStandard.iec,
           locale: 'en',

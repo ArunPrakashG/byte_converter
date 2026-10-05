@@ -33,7 +33,7 @@ registerLocalizedUnitNames('xx', {'KB': 'kilox', 'B': 'bytex'});
 registerLocalizedSynonyms('xx', {'xk': 'KB', 'byte': 'B'});
 
 final r = parseLocalized('1,5 kilox', locale: 'xx'); // -> 1.5 KB
-print(r.value!.toHumanReadableAuto(forceUnit: 'KB')); // 1.5 KB
+print(r.value!.display.auto(forceUnit: 'KB')); // 1.5 KB
 
 enableDefaultLocalizedUnitNames();
 ````

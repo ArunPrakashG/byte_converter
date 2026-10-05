@@ -2,7 +2,7 @@
 ///
 /// Provides types for describing alignment buckets (sectors/blocks/pages)
 /// and a [StorageProfile] used by converters to align and round sizes.
-library byte_converter.storage_profile;
+library;
 
 import 'byte_enums.dart';
 

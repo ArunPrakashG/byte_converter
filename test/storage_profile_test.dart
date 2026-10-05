@@ -13,17 +13,17 @@ void main() {
 
     test('roundToProfile respects rounding mode', () {
       final value = ByteConverter(1500);
-      final ceil = value.roundToProfile(
+      final ceil = value.storage.roundToProfile(
         profile,
         alignment: 'sector',
         rounding: RoundingMode.ceil,
       );
-      final floor = value.roundToProfile(
+      final floor = value.storage.roundToProfile(
         profile,
         alignment: 'sector',
         rounding: RoundingMode.floor,
       );
-      final round = value.roundToProfile(
+      final round = value.storage.roundToProfile(
         profile,
         alignment: 'sector',
         rounding: RoundingMode.round,
@@ -35,10 +35,10 @@ void main() {
 
     test('alignment slack and isAligned', () {
       final value = ByteConverter(1500);
-      final slackDefault = value.alignmentSlack(profile);
+      final slackDefault = value.storage.alignmentSlack(profile);
       expect(slackDefault.asBytes(), closeTo(4096 - 1500, 1e-9));
 
-      final slackFloor = value.alignmentSlack(
+      final slackFloor = value.storage.alignmentSlack(
         profile,
         alignment: 'sector',
         rounding: RoundingMode.floor,
@@ -46,8 +46,8 @@ void main() {
       expect(slackFloor.asBytes(), equals(0));
 
       final aligned = ByteConverter(4096);
-      expect(aligned.isAligned(profile), isTrue);
-      expect(aligned.isAligned(profile, alignment: 'sector'), isTrue);
+      expect(aligned.storage.isAligned(profile), isTrue);
+      expect(aligned.storage.isAligned(profile, alignment: 'sector'), isTrue);
     });
 
     test('BigByteConverter integration', () {

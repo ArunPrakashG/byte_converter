@@ -51,9 +51,8 @@ The library is modular, so you can import only what you need.
 | Import Path                                       | Best For...                                                                                  |
 | :------------------------------------------------ | :------------------------------------------------------------------------------------------- |
 | `package:byte_converter/byte_converter.dart`      | **Most Projects.** Includes core features like conversion, formatting, and data rates.       |
-| `package:byte_converter/byte_converter_intl.dart` | **Localization.** Use this if you need locale-aware number formatting (e.g., `1.234,56 MB`). |
-| `package:byte_converter/byte_converter_lite.dart` | **Minimalism.** A lightweight version without external dependencies.                         |
-| `package:byte_converter/byte_converter_full.dart` | **Advanced Usage.** Includes statistics, streaming tools, and interop adapters.              |
+| `package:byte_converter/byte_converter_lite.dart` | **Locale numbers.** Adds a built-in number formatter for en, de, fr, es, pt, ja, zh, ru (no `intl` needed).                         |
+| `package:byte_converter/byte_converter_full.dart` | **Advanced Usage.** Adds statistics, streaming, bit operations, validation, accumulators, and interop adapters.              |
 
 ## Next Steps
 

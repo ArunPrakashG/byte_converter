@@ -1,5 +1,54 @@
 # Changelog
 
+## 3.0.0 - 2026-10-04
+
+Fixes for several real formatting/parsing bugs, a much smaller dependency and API surface, and CI. Read **Breaking changes** before upgrading.
+
+### Breaking changes
+- **No more `intl` dependency.** `package:byte_converter/byte_converter_intl.dart` (`enableByteConverterIntl` / `disableByteConverterIntl`) is removed; the package now has zero runtime dependencies (this also ends the version clash with `flutter_localizations`, which pins `intl`). The hook it used is public in the core import: `registerHumanizeNumberFormatter(...)` / `clearHumanizeNumberFormatter()` with `HumanizeOptions`. A 10-line `intl` recipe is in the docs (Formatting → Locale-aware formatting) and is covered by `test/intl_recipe_test.dart`. `byte_converter_lite.dart` still gives built-in separators for en, de, fr, es, pt, ja, zh, ru.
+  - Compound formatting (`display.compound`) no longer calls `intl` either: with a locale it uses the registered formatter (e.g. lite), otherwise English `1,234` grouping.
+- **Removed deprecated `ByteConverter` members** (all were marked "removed in v3.0.0"):
+
+  | Removed | Use instead |
+  |---|---|
+  | `sectors`, `blocks`, `pages`, `words`, `isWhole*`, `roundTo{Sector,Block,Page,Word}`, `roundToProfile`, `alignmentSlack`, `isAligned` | `size.storage.…` |
+  | `bitsPerSecond`, `kiloBitsPerSecond`, `megaBitsPerSecond`, `gigaBitsPerSecond`, `transferTimeAt`, `downloadTimeAt` | `size.rate.…` |
+  | `toHumanReadable(unit)` | `size.display.inUnit(unit)` |
+  | `toHumanReadableAuto(...)` | `size.display.auto(...)` |
+  | `toHumanReadableAutoWith(options)` | `size.display.format(options)` |
+  | `toHumanReadableCompound(...)` | `size.display.compound(...)` |
+  | `formatWith(pattern, ...)` | `size.display.pattern(pattern, ...)` |
+  | `toFullWords(...)` | `size.display.auto(fullForm: true)` / `size.display.fullWords()` |
+  | `largestWholeNumber(...)` | `size.output.largestWholeNumber()` / `size.outputWith(standard).largestWholeNumber()` (new) |
+
+  `DataRate`, `BigByteConverter` and `BigDataRate` keep their own `toHumanReadableAuto` etc.
+- **Smaller core import.** `bit_operations`, `BandwidthAccumulator`, byte constants, rounding helpers, negative-value/delta formatting and `ByteValidation` moved from `byte_converter.dart` to `byte_converter_full.dart`.
+- **Removed non-byte utilities:** `RelativeTime`, `NaturalTimeDelta`, `SINumber`, `ByteOrdinal` and their `Duration`/`DateTime`/`num`/`int` extensions. They formatted times and plain numbers, not byte quantities.
+- `ByteConverter(double.nan)` / `infinity` now throw `ArgumentError`.
+- English `fullForm` output uses singular names for exactly one unit (`1 byte`, `1 kilobyte`; was `1 bytes`).
+- `1,234` (a single comma followed by exactly three digits) now parses as 1234, and repeated separators (`1,234,567`, `1.234.567`) are grouping. `1,5` and `1.234` keep their previous decimal reading.
+
+### Fixed
+- **Rounding at unit boundaries:** values that round up to the unit ratio are promoted to the next unit. `ByteConverter(999999)` formats as `1 MB` (was `1000 KB`) for SI, IEC, JEDEC and bit output.
+- **IEC beyond TiB:** `1 PiB` printed `1024 TiB`; `BigByteConverter` IEC values up to `YiB` format correctly.
+- `ByteConverter.toString()` scales up to quettabytes instead of capping at `PB`.
+- `ByteConverter.fromJson` accepts integers and numeric strings (it threw a `TypeError` on `{"bytes": 1024}`).
+- Equality, ordering and `hashCode` stay correct beyond ~1.15 EB (the bit count saturated, so `1e19 == 2e19`).
+- Parsing: `1 KiB` / `1 kibibyte` work under the default standard (also `1 KiB/s`); short bit forms `Mbit`, `kbits`, `Gibit` are accepted.
+- Doc comments referenced constructors that don't exist (`fromMB`, `fromGB`, `fromKB`) and showed methods as properties; README outputs corrected.
+
+### Added
+- `size.output.largestWholeNumber({useBytes})` (the replacement the old deprecation note promised, which did not exist).
+- `SiKSymbolCase`, `UnitPolicy`, `FormattingRoundingMode`, `HumanizeOptions`, `HumanizeNumberFormatter` and the register/clear functions are exported from `byte_converter.dart`.
+- GitHub Actions: CI (format, analyze, VM + Chrome tests, publish dry-run, Flutter resolution check) and tag-triggered publishing (`v3.0.0`).
+- `.pubignore` keeps the wiki, website and tooling out of the published archive.
+
+### Internal
+- The four humanize fast paths share one table-driven scaler; a test asserts fast and general paths agree.
+- `library` directives are unnamed; `lints` bumped to `^6.0.0`; test files renamed by area.
+
+---
+
 ## 2.6.0 - 2025-12-06
 
 ### 🚀 Major Features

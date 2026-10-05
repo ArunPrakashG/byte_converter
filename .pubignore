@@ -1,0 +1,15 @@
+# Not part of the published package
+wiki/
+website/
+.scripts/
+.vscode/
+tool/
+.github/
+
+# From .gitignore (a .pubignore replaces it)
+.dart_tool/
+.packages
+pubspec.lock
+build/
+doc/api/
+*.diff

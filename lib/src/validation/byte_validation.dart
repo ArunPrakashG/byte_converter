@@ -1,4 +1,5 @@
 import '../byte_converter_base.dart';
+import '../namespaces.dart';
 
 /// Input validation utilities for byte values.
 ///
@@ -8,12 +9,12 @@ import '../byte_converter_base.dart';
 /// Example:
 /// ```dart
 /// // Validate file size before upload
-/// if (!ByteValidation.isValidFileSize(fileSize, maxSize: ByteConverter.fromMB(100))) {
+/// if (!ByteValidation.isValidFileSize(fileSize, maxSize: ByteConverter.fromMegaBytes(100))) {
 ///   throw ArgumentError('File too large');
 /// }
 ///
 /// // Check quota
-/// if (!ByteValidation.isWithinQuota(currentUsage, quota: ByteConverter.fromGB(5))) {
+/// if (!ByteValidation.isWithinQuota(currentUsage, quota: ByteConverter.fromGigaBytes(5))) {
 ///   print('Quota exceeded!');
 /// }
 /// ```
@@ -117,7 +118,7 @@ class ByteValidation {
       throw ArgumentError.value(
         size.bytes,
         name ?? 'size',
-        'must not exceed ${maxSize.toHumanReadableAuto()}',
+        'must not exceed ${maxSize.display.auto()}',
       );
     }
   }
@@ -132,7 +133,7 @@ class ByteValidation {
       throw ArgumentError.value(
         size.bytes,
         name ?? 'size',
-        'must be at least ${minSize.toHumanReadableAuto()}',
+        'must be at least ${minSize.display.auto()}',
       );
     }
   }
@@ -148,7 +149,7 @@ class ByteValidation {
       throw ArgumentError.value(
         size.bytes,
         name ?? 'size',
-        'must be between ${min.toHumanReadableAuto()} and ${max.toHumanReadableAuto()}',
+        'must be between ${min.display.auto()} and ${max.display.auto()}',
       );
     }
   }
@@ -169,11 +170,11 @@ class ByteValidation {
     }
 
     if (minSize != null && size.bytes < minSize.bytes) {
-      errors.add('Size must be at least ${minSize.toHumanReadableAuto()}');
+      errors.add('Size must be at least ${minSize.display.auto()}');
     }
 
     if (maxSize != null && size.bytes > maxSize.bytes) {
-      errors.add('Size must not exceed ${maxSize.toHumanReadableAuto()}');
+      errors.add('Size must not exceed ${maxSize.display.auto()}');
     }
 
     return ValidationResult(

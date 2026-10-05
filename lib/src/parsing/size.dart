@@ -107,6 +107,13 @@ ByteParsingResult<TUnit> _parseSizeLiteralInternal<TUnit>({
 
     if (normalizedWordToSymbol.containsKey(lowerTrim)) {
       token = normalizedWordToSymbol[lowerTrim]!;
+    } else {
+      // Short bit forms: "Mbit", "kbits", "Gibit" -> "mb", "kb", "gib".
+      final bitForm = RegExp(r'^([kmgtpezy]i?)bits?$', caseSensitive: false)
+          .firstMatch(token);
+      if (bitForm != null) {
+        token = '${bitForm.group(1)!.toLowerCase()}b';
+      }
     }
 
     normalizedToken = token;
@@ -163,12 +170,6 @@ ByteParsingResult<TUnit> _parseSizeLiteralInternal<TUnit>({
         isBits = false;
       } else {
         bool matchStandard(ByteStandard std) {
-          // Special-case: Do not accept 'KiB' under non-IEC standards to surface unknown unit edge case expectations.
-          final tokenUpper = token.toUpperCase();
-          if ((tokenUpper == 'KIB' || tokenUpper == 'KIBB') &&
-              std != ByteStandard.iec) {
-            throw FormatException('Unknown unit: $unitStrRaw');
-          }
           switch (std) {
             case ByteStandard.si:
               final upper = token.toUpperCase();
@@ -250,12 +251,6 @@ ByteParsingResult<TUnit> _parseSizeLiteralInternal<TUnit>({
             if (fb == standard) continue;
             // Disallow ambiguous fallback of 'KB' when IEC was requested
             final tokenUpper = token.toUpperCase();
-            // Disallow IEC fallback for 'KiB' when standard is not IEC
-            if ((tokenUpper == 'KIB' || tokenUpper == 'KIBB') &&
-                fb == ByteStandard.iec &&
-                standard != ByteStandard.iec) {
-              continue;
-            }
             if (standard == ByteStandard.iec) {
               // Under IEC, do not fallback for ambiguous 'KB' only (JEDEC/SI conflict).
               if (tokenUpper == 'KB' &&
@@ -263,15 +258,9 @@ ByteParsingResult<TUnit> _parseSizeLiteralInternal<TUnit>({
                 continue;
               }
             }
-            // Disallow fallback of 'KiB' into non-IEC (handled via exception in matchStandard)
-            try {
-              if (matchStandard(fb)) {
-                matched = true;
-                break;
-              }
-            } on FormatException {
-              // Preserve strict error for KiB under non-IEC
-              rethrow;
+            if (matchStandard(fb)) {
+              matched = true;
+              break;
             }
           }
         }
@@ -316,15 +305,6 @@ ByteParsingResult<TUnit> parseSize<TUnit>({
   bool strictBits = false,
 }) {
   final normalized = _trimAndNormalize(input);
-  // Enforce that 'KiB' (IEC-only) is unknown under non-IEC standards for simple (non-expression) parses
-  if (!_containsExpressionOperators(normalized) &&
-      standard != ByteStandard.iec) {
-    final kiPattern =
-        RegExp(r'\bKiB\b|\bkibibyte\b|\bkibibytes\b', caseSensitive: false);
-    if (kiPattern.hasMatch(normalized)) {
-      throw const FormatException('Unknown unit: KiB');
-    }
-  }
   if (_containsExpressionOperators(normalized)) {
     final evaluator = _SizeExpressionEvaluator(
       input: normalized,

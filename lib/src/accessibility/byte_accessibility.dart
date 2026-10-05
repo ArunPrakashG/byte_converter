@@ -4,8 +4,8 @@ import '../byte_converter_base.dart';
 ///
 /// Access via the `accessibility` extension property on [ByteConverter]:
 /// ```dart
-/// final size = ByteConverter.fromMB(1.5);
-/// print(size.accessibility.screenReader);  // "one point five megabytes"
+/// final size = ByteConverter.fromMegaBytes(1.5);
+/// print(size.accessibility.screenReader());  // "one point five megabytes"
 /// print(size.accessibility.ariaLabel);     // "File size: one point five megabytes"
 /// ```
 class ByteAccessibility {

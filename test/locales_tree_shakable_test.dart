@@ -46,7 +46,7 @@ void main() {
       final r = parseLocalized('1,5 kilox', locale: 'xx');
       // number normalization: comma as decimal -> 1.5
       expect(r.isSuccess, isTrue);
-      expect(r.value!.toHumanReadableAuto(forceUnit: 'KB'), '1.5 KB');
+      expect(r.value!.display.auto(forceUnit: 'KB'), '1.5 KB');
     });
 
     test('locale fallback fr-FR -> fr', () {
@@ -54,7 +54,7 @@ void main() {
       // French default contains 'kilooctets' for KB
       final r = parseLocalized('1,5 kilooctets', locale: 'fr-FR');
       expect(r.isSuccess, isTrue);
-      expect(r.value!.toHumanReadableAuto(forceUnit: 'KB'), '1.5 KB');
+      expect(r.value!.display.auto(forceUnit: 'KB'), '1.5 KB');
     });
   });
 }

@@ -7,7 +7,7 @@ import '../byte_enums.dart';
 ///
 /// Access via the `output` extension property on [ByteConverter]:
 /// ```dart
-/// final size = ByteConverter.fromKB(1536);
+/// final size = ByteConverter.fromKiloBytes(1536);
 /// print(size.output.asArray);   // [1.5, 'MB']
 /// print(size.output.asTuple);   // (1.5, 'MB')
 /// print(size.output.asMap);     // {'value': 1.5, 'unit': 'MB', 'standard': 'SI'}
@@ -35,6 +35,39 @@ class ByteOutputFormats {
   static const _gib = _mib * 1024;
   static const _tib = _gib * 1024;
   static const _pib = _tib * 1024;
+
+  /// Returns the largest unit in which this size is at least one whole unit,
+  /// together with the integer part of the value in that unit.
+  ///
+  /// Uses the [standard] this namespace was created with. With
+  /// `useBytes: false` the size is measured in bits instead (symbols `Kb`...).
+  /// Example: 1536 B under SI -> `(value: 1, symbol: 'KB')`.
+  ({int value, String symbol}) largestWholeNumber({bool useBytes = true}) {
+    final isBits = !useBytes;
+    final value = isBits ? _bytes * 8.0 : _bytes;
+    final (thresholds, symbols) = switch (standard) {
+      ByteStandard.si => (
+          const [1e12, 1e9, 1e6, 1e3],
+          const ['TB', 'GB', 'MB', 'KB'],
+        ),
+      ByteStandard.jedec => (
+          const [_tib, _gib, _mib, _kib],
+          const ['TB', 'GB', 'MB', 'KB'],
+        ),
+      ByteStandard.iec => (
+          const [_tib, _gib, _mib, _kib],
+          const ['TiB', 'GiB', 'MiB', 'KiB'],
+        ),
+    };
+    for (var i = 0; i < thresholds.length; i++) {
+      final unitValue = value / thresholds[i];
+      if (unitValue.floorToDouble() >= 1) {
+        final symbol = isBits ? symbols[i].replaceAll('B', 'b') : symbols[i];
+        return (value: unitValue.floor(), symbol: symbol);
+      }
+    }
+    return (value: value.floor(), symbol: isBits ? 'b' : 'B');
+  }
 
   /// Returns the size as a list: [value, unit].
   ///

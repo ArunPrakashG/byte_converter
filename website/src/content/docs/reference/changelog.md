@@ -5,7 +5,16 @@ This wiki summarizes changes. For authoritative release notes, see the repositor
 
 - GitHub: https://github.com/ArunPrakashG/byte_converter/blob/master/CHANGELOG.md
 
-## 2.3.1 (Latest)
+## 3.0.0 (Latest)
+
+- Zero runtime dependencies: `byte_converter_intl.dart` is removed; plug `intl` in with `registerHumanizeNumberFormatter` (see Formatting).
+- Removed deprecated `ByteConverter` members; use the `display`, `storage`, `rate`, `output` namespaces.
+- Removed `RelativeTime`, `NaturalTimeDelta`, `SINumber`, `ByteOrdinal`; advanced helpers moved to `byte_converter_full.dart`.
+- Fixes: `999999` → `1 MB` (was `1000 KB`), IEC beyond TiB, `fromJson` with ints, large-value equality, `KiB`/`Mbit`/`1,234` parsing, singular full-form names.
+
+See the repository changelog for the full migration table.
+
+## 2.3.1
 
 ### Fixed
 
