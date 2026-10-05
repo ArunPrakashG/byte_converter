@@ -10,6 +10,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The checked-in wiki gitlink must exist so pub treats it like a local run
+          submodules: true
       - uses: dart-lang/setup-dart@v1
         with:
           sdk: stable

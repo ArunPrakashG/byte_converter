@@ -28,6 +28,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The checked-in wiki gitlink must exist so pub treats it like a local run
+          submodules: true
       - uses: dart-lang/setup-dart@v1
       - name: Tag matches pubspec version and changelog entry exists
         run: tool/ci/check_release.sh "$GITHUB_REF_NAME"
@@ -47,6 +50,9 @@ jobs:
       id-token: write # OIDC token for pub.dev automated publishing
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The checked-in wiki gitlink must exist so pub treats it like a local run
+          submodules: true
       - uses: dart-lang/setup-dart@v1
       - run: dart pub get
       - run: dart pub publish --force
